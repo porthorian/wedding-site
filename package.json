@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxt/image": "1.11.0",
     "@nuxt/ui": "3.3.3",
+    "animejs": "^3.2.2",
     "nuxt": "^4.1.1",
     "vue": "^3.5.20",
     "vue-router": "^4.5.1",

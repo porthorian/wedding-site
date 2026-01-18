@@ -1,7 +1,11 @@
 <template>
-  <div class="flex flex-col items-center">
-    <div class="text-3xl md:text-5xl font-script mb-2">{{ countdown }}</div>
-    <div class="text-sm text-dark/60">until the big day!</div>
+  <div class="countdown-shell">
+    <div class="countdown-grid">
+      <div v-for="part in parts" :key="part.label" class="countdown-cell">
+        <div class="countdown-value">{{ part.value }}</div>
+        <div class="countdown-label">{{ part.label }}</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -9,14 +13,24 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{ date: Date }>()
-const countdown = ref('')
+const parts = ref([
+  { label: 'Days', value: '0' },
+  { label: 'Hours', value: '0' },
+  { label: 'Minutes', value: '0' },
+  { label: 'Seconds', value: '0' },
+])
 let interval: any
 
 function updateCountdown() {
   const now = new Date()
   const diff = props.date.getTime() - now.getTime()
   if (diff <= 0) {
-    countdown.value = 'Today is the day!'
+    parts.value = [
+      { label: 'Days', value: '0' },
+      { label: 'Hours', value: '0' },
+      { label: 'Minutes', value: '0' },
+      { label: 'Seconds', value: '0' },
+    ]
     clearInterval(interval)
     return
   }
@@ -24,7 +38,12 @@ function updateCountdown() {
   const hours = Math.floor((diff / (1000 * 60 * 60)) % 24)
   const minutes = Math.floor((diff / (1000 * 60)) % 60)
   const seconds = Math.floor((diff / 1000) % 60)
-  countdown.value = `${days}d ${hours}h ${minutes}m ${seconds}s`
+  parts.value = [
+    { label: 'Days', value: `${days}` },
+    { label: 'Hours', value: `${hours}` },
+    { label: 'Minutes', value: `${minutes}` },
+    { label: 'Seconds', value: `${seconds}` },
+  ]
 }
 
 onMounted(() => {
@@ -35,7 +54,36 @@ onUnmounted(() => clearInterval(interval))
 </script>
 
 <style scoped>
-.font-script {
-  font-family: 'Dancing Script', cursive;
+.countdown-shell {
+  border: 1px solid rgba(210, 187, 165, 0.6);
+  border-radius: 16px;
+  background: rgba(255, 251, 246, 0.9);
+  padding: 16px;
+}
+
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  text-align: center;
+}
+
+.countdown-cell {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(210, 187, 165, 0.4);
+  border-radius: 12px;
+  padding: 12px 8px;
+}
+
+.countdown-value {
+  font-family: var(--font-title);
+  font-size: 20px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(58, 45, 42, 0.6);
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
-  <div>
-    <main class="pt-20">
+  <v-app class="page-shell">
+    <v-main>
       <NuxtPage />
-    </main>
-  </div>
+    </v-main>
+  </v-app>
 </template>
