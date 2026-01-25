@@ -26,8 +26,10 @@ export default defineEventHandler((event) => {
     const length = typeof lengthHeader === 'string' || typeof lengthHeader === 'number'
       ? lengthHeader
       : '-'
-    const durationSec = ((Date.now() - startedAt) / 1000).toFixed(3)
-    const timestamp = new Date().toISOString()
+    
+    const dateNow = new Date();
+    const durationSec = ((dateNow.getTime() - startedAt) / 1000).toFixed(3)
+    const timestamp = dateNow.toISOString()
 
     console.log(
       `${remoteAddress} - - [${timestamp}] "${method} ${url} HTTP/${httpVersion}" ${status} ${length} ` +
