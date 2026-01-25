@@ -6427,7 +6427,6 @@ __metadata:
     vite: "npm:^7.3.0"
     vite-plugin-vuetify: "npm:^2.1.2"
     vue: "npm:^3.5.20"
-    vue-router: "npm:^4.5.1"
     vuetify: "npm:^3.11.6"
   languageName: unknown
   linkType: soft
