@@ -1,35 +1,33 @@
 <template>
   <section class="page-shell paper-bg">
     <v-container class="py-10">
-      <section id="hero" class="landing-section">
-        <v-card class="panel panel-hero" elevation="0">
-          <v-card-text class="panel-content">
-            <p class="eyebrow">{{ wedding.hero.dateDisplay }} • {{ wedding.location }}</p>
-            <h1 class="hero-title">{{ wedding.names }}</h1>
-            <p class="hero-tagline">{{ wedding.hero.tagline }}</p>
-            <div class="button-row">
-              <v-btn
-                v-for="cta in wedding.hero.ctas"
-                :key="cta.label"
-                :href="cta.href"
-                class="text-none"
-                color="primary"
-                variant="elevated"
-              >
-                {{ cta.label }}
-              </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
-      </section>
-
-      <section id="countdown" class="landing-section">
-        <v-card class="panel panel-schedule" elevation="0">
-          <v-card-text class="panel-content">
-            <h2 class="panel-title">Countdown to the celebration</h2>
-            <Countdown :date="weddingDate" />
-          </v-card-text>
-        </v-card>
+      <section id="hero" class="landing-section landing-section--hero">
+        <div class="hero-frame">
+          <div ref="heroFrameRef" class="hero-frame-art" aria-hidden="true" v-html="heroFrameSvg" />
+          <v-card class="panel panel-hero hero-frame-card" elevation="0">
+            <v-card-text class="panel-content">
+              <p class="eyebrow">{{ wedding.hero.dateDisplay }} • {{ wedding.location }}</p>
+              <h1 class="hero-title">{{ wedding.names }}</h1>
+              <p class="hero-tagline">{{ wedding.hero.tagline }}</p>
+              <div class="hero-countdown">
+                <div class="section-label">Countdown</div>
+                <Countdown :date="weddingDate" />
+              </div>
+              <div class="button-row">
+                <v-btn
+                  v-for="cta in wedding.hero.ctas"
+                  :key="cta.label"
+                  :href="cta.href"
+                  class="text-none"
+                  color="primary"
+                  variant="elevated"
+                >
+                  {{ cta.label }}
+                </v-btn>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
       </section>
 
       <section id="schedule" class="landing-section">
@@ -167,7 +165,53 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
+import heroFrameSvg from '~/assets/svgs/810543_23257-NV0O8K.svg?raw'
 
 const weddingDate = new Date(wedding.dateISO)
+const heroFrameRef = ref<HTMLElement | null>(null)
+let heroAnimation: anime.JSAnimation | null = null
+let floatAnimation: anime.JSAnimation | null = null
+
+onMounted(() => {
+  const root = heroFrameRef.value
+  if (!root) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const paths = root.querySelectorAll('path')
+  if (paths.length === 0) return
+
+  heroAnimation = anime.animate(paths, {
+    keyframes: [
+      { translateX: -6, translateY: -2, rotate: -2 },
+      { translateX: 6, translateY: 2, rotate: 2 },
+      { translateX: -6, translateY: -2, rotate: -2 },
+    ],
+    ease: 'inOutSine',
+    duration: 8000,
+    delay: anime.stagger(40, { from: 'center' }),
+    loop: true,
+    alternate: true
+  })
+
+  floatAnimation = anime.animate(root, {
+    keyframes: [
+      { translateX: -6, translateY: -2, rotate: -1.2 },
+      { translateX: 6, translateY: 2, rotate: 1.2 },
+      { translateX: -6, translateY: -2, rotate: -1.2 },
+    ],
+    duration: 8000,
+    ease: 'inOutSine',
+    loop: true,
+    alternate: true
+  })
+})
+
+onBeforeUnmount(() => {
+  heroAnimation?.pause()
+  floatAnimation?.pause()
+  heroAnimation = null
+  floatAnimation = null
+})
 </script>
