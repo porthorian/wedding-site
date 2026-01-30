@@ -55,9 +55,6 @@ onUnmounted(() => clearInterval(interval))
 
 <style scoped>
 .countdown-shell {
-  border: 1px solid rgba(210, 187, 165, 0.6);
-  border-radius: 16px;
-  background: rgba(255, 251, 246, 0.9);
   padding: 16px;
 }
 

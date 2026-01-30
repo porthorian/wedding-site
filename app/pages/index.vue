@@ -4,7 +4,7 @@
       <section id="hero" class="landing-section landing-section--hero">
         <div class="hero-frame">
           <div ref="heroFrameRef" class="hero-frame-art" aria-hidden="true" v-html="heroFrameSvg" />
-          <v-card class="panel panel-hero hero-frame-card" elevation="0">
+          <v-card class="panel-hero hero-frame-card" elevation="1">
             <v-card-text class="panel-content">
               <p class="eyebrow">{{ wedding.hero.dateDisplay }} • {{ wedding.location }}</p>
               <h1 class="hero-title">{{ wedding.names }}</h1>
@@ -35,7 +35,7 @@
           :options="{'threshold':0.5}"
           transition="fade-transition"
         >
-          <v-card class="panel" elevation="0">
+          <v-card elevation="0">
             <v-card-text class="panel-content">
               <h2 class="panel-title">Our Schedule</h2>
               <v-row>
@@ -57,7 +57,7 @@
           :options="{'threshold':0.5}"
           transition="fade-transition"
         >
-          <v-card class="panel" elevation="0">
+          <v-card elevation="0">
             <v-card-text class="panel-content">
               <h2 class="panel-title">Travel &amp; Accommodations</h2>
               <v-row>
@@ -104,7 +104,7 @@
           :options="{'threshold':0.5}"
           transition="fade-transition"
         >
-          <v-card class="panel" elevation="0">
+          <v-card elevation="0">
             <v-card-text class="panel-content">
               <h2 class="panel-title">Photo Gallery</h2>
 
@@ -134,7 +134,7 @@
           :options="{'threshold':0.5}"
           transition="fade-transition"
         >
-          <v-card class="panel" elevation="0">
+          <v-card elevation="0">
             <v-card-text class="panel-content">
             <h2 class="panel-title">Our Registry</h2>
             <v-row>
@@ -164,7 +164,7 @@
           :options="{'threshold':0.5}"
           transition="fade-transition"
         >
-          <v-card class="panel" elevation="0">
+          <v-card elevation="0">
             <v-card-text class="panel-content">
               <h2 class="panel-title">RSVP &amp; Song Request</h2>
               <v-row>
