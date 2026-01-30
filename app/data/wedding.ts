@@ -19,22 +19,22 @@ export const wedding = {
     { time: '10:45 PM', title: 'Last Call', detail: 'One more song' },
   ],
   travel: {
-    airports: ['EWR (Newark)', 'JFK', 'LGA'],
+    airports: ['EWR (Newark)'],
     hotels: [
-      { name: 'Hotel Option 1', url: 'https://example.com', note: 'Block code: ROSA' },
-      { name: 'Hotel Option 2', url: 'https://example.com', note: 'Closest to venue' },
+      { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD - Shuttle to Venue' },
+      { name: 'Doubletree by Hilton Tinton Falls Eatontown', url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown', note: 'Closest to venue' },
     ],
     gettingAround: [
       'Uber/Lyft is widely available.',
-      "If you're staying near the shore, plan ~25-35 min drive.",
+      "If you're staying near the shore, plan ~20 min drive.",
     ],
     photo:
       'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
   },
   registry: [
-    { name: 'Zola', url: 'https://example.com' },
-    { name: 'Amazon', url: 'https://example.com' },
-    { name: 'Crate & Barrel', url: 'https://example.com' },
+    { name: 'Williams Sonoma', url: 'https://www.williams-sonoma.com/registry/q2tgk9rvsg/registry-list.html' },
+    { name: 'Crate & Barrel', url: 'https://www.crateandbarrel.com/gift-registry/rosa-franze-and-vinnie-marone/r7391211' },
+    { name: 'Amazon', url: 'https://www.amazon.com/wedding/guest-view/3UW4QAP93JK2E' },
   ],
   gallery: [
     {

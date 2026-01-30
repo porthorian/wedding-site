@@ -31,82 +31,111 @@
       </section>
 
       <section id="schedule" class="landing-section">
-        <v-card class="panel" elevation="0">
-          <v-card-text class="panel-content">
-            <h2 class="panel-title">Our Schedule</h2>
-            <v-row>
-              <v-col v-for="item in wedding.schedule" :key="item.time" cols="12" sm="6" md="3">
-                <div class="mini-card">
-                  <div class="mini-time">{{ item.time }}</div>
-                  <div class="mini-title">{{ item.title }}</div>
-                  <div class="mini-detail">{{ item.detail }}</div>
-                </div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <v-lazy
+          :options="{'threshold':0.5}"
+          transition="fade-transition"
+        >
+          <v-card class="panel" elevation="0">
+            <v-card-text class="panel-content">
+              <h2 class="panel-title">Our Schedule</h2>
+              <v-row>
+                <v-col v-for="item in wedding.schedule" :key="item.time" cols="12" sm="6" md="3">
+                  <div class="mini-card">
+                    <div class="mini-time">{{ item.time }}</div>
+                    <div class="mini-title">{{ item.title }}</div>
+                    <div class="mini-detail">{{ item.detail }}</div>
+                  </div>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-lazy>
       </section>
 
       <section id="travel" class="landing-section">
-        <v-card class="panel" elevation="0">
-          <v-card-text class="panel-content">
-            <h2 class="panel-title">Travel &amp; Accommodations</h2>
-            <v-row>
-              <v-col cols="12" md="7">
-                <div class="section-block">
-                  <div class="section-label">Nearby Airports</div>
-                  <v-chip-group>
-                    <v-chip v-for="airport in wedding.travel.airports" :key="airport" color="secondary">
-                      {{ airport }}
-                    </v-chip>
-                  </v-chip-group>
-                </div>
-                <div class="section-block">
-                  <div class="section-label">Hotels</div>
-                  <div v-for="hotel in wedding.travel.hotels" :key="hotel.name" class="link-row">
-                    <a :href="hotel.url" target="_blank" rel="noreferrer">{{ hotel.name }}</a>
-                    <span class="muted">{{ hotel.note }}</span>
+        <v-lazy
+          :options="{'threshold':0.5}"
+          transition="fade-transition"
+        >
+          <v-card class="panel" elevation="0">
+            <v-card-text class="panel-content">
+              <h2 class="panel-title">Travel &amp; Accommodations</h2>
+              <v-row>
+                <v-col cols="12" md="7">
+                  <div class="section-block">
+                    <div class="section-label">Nearby Airports</div>
+                    <v-chip-group>
+                      <v-chip v-for="airport in wedding.travel.airports" :key="airport" color="secondary">
+                        {{ airport }}
+                      </v-chip>
+                    </v-chip-group>
                   </div>
-                </div>
-                <div class="section-block">
-                  <div class="section-label">Local Transport</div>
-                  <div v-for="note in wedding.travel.gettingAround" :key="note" class="muted">
-                    {{ note }}
+                  <div class="section-block">
+                    <div class="section-label">Hotels</div>
+                    <div v-for="hotel in wedding.travel.hotels" :key="hotel.name" class="link-row">
+                      <a :href="hotel.url" target="_blank" rel="noreferrer">{{ hotel.name }}</a>
+                      <span class="muted">{{ hotel.note }}</span>
+                    </div>
                   </div>
-                </div>
-              </v-col>
-              <v-col cols="12" md="5">
-                <v-img
-                  class="travel-photo"
-                  :src="wedding.travel.photo"
-                  alt="Travel"
-                  height="240"
-                  cover
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+                  <div class="section-block">
+                    <div class="section-label">Local Transport</div>
+                    <div v-for="note in wedding.travel.gettingAround" :key="note" class="muted">
+                      {{ note }}
+                    </div>
+                  </div>
+                </v-col>
+                <v-col cols="12" md="5">
+                  <v-img
+                    class="travel-photo"
+                    :src="wedding.travel.photo"
+                    alt="Travel"
+                    height="240"
+                    cover
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-lazy>
       </section>
 
       <section id="gallery" class="landing-section">
-        <v-card class="panel" elevation="0">
-          <v-card-text class="panel-content">
-            <h2 class="panel-title">Photo Gallery</h2>
-            <v-row dense>
-              <v-col v-for="photo in wedding.gallery" :key="photo.url" cols="12" sm="6" md="4">
-                <v-card class="gallery-card" elevation="0">
-                  <v-img :src="photo.url" :alt="photo.title" height="200" cover />
-                </v-card>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <v-lazy
+          :options="{'threshold':0.5}"
+          transition="fade-transition"
+        >
+          <v-card class="panel" elevation="0">
+            <v-card-text class="panel-content">
+              <h2 class="panel-title">Photo Gallery</h2>
+
+              <v-carousel
+                height="420"
+                hide-delimiter-background
+                show-arrows="hover"
+                cycle
+              >
+                <v-carousel-item v-for="photo in wedding.gallery" :key="photo.url">
+                  <v-img :src="photo.url" :alt="photo.title" height="420" cover>
+                    <div class="pa-4 d-flex align-end fill-height">
+                      <div class="text-subtitle-1 text-white">
+                        {{ photo.title }}
+                      </div>
+                    </div>
+                  </v-img>
+                </v-carousel-item>
+              </v-carousel>
+            </v-card-text>
+          </v-card>
+        </v-lazy>
       </section>
 
       <section id="registry" class="landing-section">
-        <v-card class="panel" elevation="0">
-          <v-card-text class="panel-content">
+        <v-lazy
+          :options="{'threshold':0.5}"
+          transition="fade-transition"
+        >
+          <v-card class="panel" elevation="0">
+            <v-card-text class="panel-content">
             <h2 class="panel-title">Our Registry</h2>
             <v-row>
               <v-col v-for="item in wedding.registry" :key="item.name" cols="12" sm="4">
@@ -126,39 +155,45 @@
               </v-col>
             </v-row>
           </v-card-text>
-        </v-card>
+          </v-card>
+        </v-lazy>
       </section>
 
       <section id="rsvp" class="landing-section">
-        <v-card class="panel" elevation="0">
-          <v-card-text class="panel-content">
-            <h2 class="panel-title">RSVP &amp; Song Request</h2>
-            <v-row>
-              <v-col cols="12" md="7">
-                <v-form>
-                  <v-text-field label="Your Name" variant="underlined" />
-                  <v-text-field label="Email Address" variant="underlined" />
-                  <div class="field-group">
-                    <div class="section-label">Will you attend?</div>
-                    <v-radio-group inline>
-                      <v-radio label="Yes" value="yes" />
-                      <v-radio label="No" value="no" />
-                    </v-radio-group>
+        <v-lazy
+          :options="{'threshold':0.5}"
+          transition="fade-transition"
+        >
+          <v-card class="panel" elevation="0">
+            <v-card-text class="panel-content">
+              <h2 class="panel-title">RSVP &amp; Song Request</h2>
+              <v-row>
+                <v-col cols="12" md="7">
+                  <v-form>
+                    <v-text-field label="Your Name" variant="underlined" />
+                    <v-text-field label="Email Address" variant="underlined" />
+                    <div class="field-group">
+                      <div class="section-label">Will you attend?</div>
+                      <v-radio-group inline>
+                        <v-radio label="Yes" value="yes" />
+                        <v-radio label="No" value="no" />
+                      </v-radio-group>
+                    </div>
+                    <v-text-field label="Number of Guests" variant="underlined" />
+                    <v-text-field label="Dietary Restrictions" variant="underlined" />
+                    <v-text-field label="Song Request" variant="underlined" />
+                    <v-textarea label="Message" variant="underlined" rows="3" />
+                  </v-form>
+                </v-col>
+                <v-col cols="12" md="5" class="d-flex align-end">
+                  <div class="button-row">
+                    <v-btn color="primary" class="text-none" variant="elevated">Send</v-btn>
                   </div>
-                  <v-text-field label="Number of Guests" variant="underlined" />
-                  <v-text-field label="Dietary Restrictions" variant="underlined" />
-                  <v-text-field label="Song Request" variant="underlined" />
-                  <v-textarea label="Message" variant="underlined" rows="3" />
-                </v-form>
-              </v-col>
-              <v-col cols="12" md="5" class="d-flex align-end">
-                <div class="button-row">
-                  <v-btn color="primary" class="text-none" variant="elevated">Send</v-btn>
-                </div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-lazy>
       </section>
     </v-container>
   </section>
