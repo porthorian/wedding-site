@@ -214,6 +214,93 @@ h3 {
   margin: 8px 0 16px;
 }
 
+.rsvp-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(214, 194, 176, 0.6);
+  border-radius: 16px;
+  background: rgba(255, 252, 248, 0.9);
+}
+
+.rsvp-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: clamp(160px, 24vw, 260px);
+  background-repeat: no-repeat;
+  background-position: 50% 35%;
+  background-size: cover;
+  opacity: 0.16;
+  filter: saturate(0.9) contrast(0.95);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+}
+
+.panel-content--rsvp {
+  z-index: 1;
+  padding: clamp(18px, 2.6vw, 32px);
+}
+
+.rsvp-form-alert {
+  margin-bottom: 16px;
+}
+
+.rsvp-alert-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.rsvp-error-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.rsvp-card .field-group {
+  margin: 6px 0 12px;
+}
+
+.rsvp-optional {
+  margin-top: 10px;
+}
+
+.rsvp-footer {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rsvp-vine {
+  width: min(520px, 100%);
+  height: clamp(86px, 13vw, 120px);
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.rsvp-vine svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform-origin: 50% 85%;
+}
+
+.rsvp-vine path {
+  fill: rgba(126, 166, 140, 0.55) !important;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.rsvp-disclaimer {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  max-width: 58ch;
+}
+
 @media (max-width: 960px) {
   .hero-title {
     font-size: 36px;

@@ -170,35 +170,7 @@
           :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
-          <v-card elevation="0">
-            <v-card-text class="panel-content">
-              <h2 class="panel-title">RSVP &amp; Song Request</h2>
-              <v-row>
-                <v-col cols="12" md="7">
-                  <v-form>
-                    <v-text-field label="Your Name" variant="underlined" />
-                    <v-text-field label="Email Address" variant="underlined" />
-                    <div class="field-group">
-                      <div class="section-label">Will you attend?</div>
-                      <v-radio-group inline>
-                        <v-radio label="Yes" value="yes" />
-                        <v-radio label="No" value="no" />
-                      </v-radio-group>
-                    </div>
-                    <v-text-field label="Number of Guests" variant="underlined" />
-                    <v-text-field label="Dietary Restrictions" variant="underlined" />
-                    <v-text-field label="Song Request" variant="underlined" />
-                    <v-textarea label="Message" variant="underlined" rows="3" />
-                  </v-form>
-                </v-col>
-                <v-col cols="12" md="5" class="d-flex align-end">
-                  <div class="button-row">
-                    <v-btn color="primary" class="text-none" variant="elevated">Send</v-btn>
-                  </div>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
+          <RsvpSection />
         </v-lazy>
       </section>
     </v-container>
