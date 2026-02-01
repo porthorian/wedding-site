@@ -18,6 +18,7 @@
                   v-for="cta in wedding.hero.ctas"
                   :key="cta.label"
                   :href="cta.href"
+                  @click="onHeroCtaClick"
                   class="text-none"
                   color="primary"
                   variant="elevated"
@@ -32,7 +33,8 @@
 
       <section id="schedule" class="landing-section">
         <v-lazy
-          :options="{'threshold':0.5}"
+          v-model="lazyActive.schedule"
+          :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
           <v-card elevation="0">
@@ -54,7 +56,8 @@
 
       <section id="travel" class="landing-section">
         <v-lazy
-          :options="{'threshold':0.5}"
+          v-model="lazyActive.travel"
+          :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
           <v-card elevation="0">
@@ -101,7 +104,8 @@
 
       <section id="gallery" class="landing-section">
         <v-lazy
-          :options="{'threshold':0.5}"
+          v-model="lazyActive.gallery"
+          :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
           <v-card elevation="0">
@@ -131,7 +135,8 @@
 
       <section id="registry" class="landing-section">
         <v-lazy
-          :options="{'threshold':0.5}"
+          v-model="lazyActive.registry"
+          :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
           <v-card elevation="0">
@@ -161,7 +166,8 @@
 
       <section id="rsvp" class="landing-section">
         <v-lazy
-          :options="{'threshold':0.5}"
+          v-model="lazyActive.rsvp"
+          :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
           <v-card elevation="0">
@@ -200,17 +206,63 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 import heroFrameSvg from '~/assets/svgs/810543_23257-NV0O8K.svg?raw'
 
 const weddingDate = new Date(wedding.dateISO)
 const heroFrameRef = ref<HTMLElement | null>(null)
+const lazyActive = reactive({
+  schedule: false,
+  travel: false,
+  gallery: false,
+  registry: false,
+  rsvp: false,
+})
+
+const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
+
+function activateAllLazySections() {
+  for (const id of lazySectionIds) lazyActive[id] = true
+}
+
+async function scrollToSectionId(id: string, opts?: { replaceHash?: boolean }) {
+  if (!id) return
+
+  activateAllLazySections()
+  await nextTick()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+
+  const target = document.getElementById(id)
+  if (!target) return
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
+
+  const nextHash = `#${id}`
+  if (opts?.replaceHash) history.replaceState(null, '', nextHash)
+  else history.pushState(null, '', nextHash)
+}
+
+function onHeroCtaClick(e: MouseEvent) {
+  const href = (e.currentTarget as HTMLAnchorElement | null)?.getAttribute('href')
+  if (!href?.startsWith('#')) return
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+
+  e.preventDefault()
+  void scrollToSectionId(href.slice(1))
+}
+
 let heroAnimation: anime.JSAnimation | null = null
 let floatAnimation: anime.JSAnimation | null = null
 
 onMounted(() => {
+  const initialHash = window.location.hash?.slice(1)
+  if (initialHash && lazySectionIds.includes(initialHash as keyof typeof lazyActive)) {
+    void scrollToSectionId(initialHash, { replaceHash: true })
+  }
+
   const root = heroFrameRef.value
   if (!root) return
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
