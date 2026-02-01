@@ -80,72 +80,72 @@
           </v-col>
         </v-row>
 
-        <v-expansion-panels v-model="rsvpOptionalPanel" variant="accordion" class="rsvp-optional">
-          <v-expansion-panel>
-            <v-expansion-panel-title class="text-none">Optional details</v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <v-row dense>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="rsvpForm.email"
-                    label="Email Address"
-                    variant="underlined"
-                    density="compact"
-                    hide-details
-                    type="email"
-                    autocomplete="email"
-                    inputmode="email"
-                    :rules="emailRules"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="rsvpForm.address"
-                    label="Address"
-                    variant="underlined"
-                    density="compact"
-                    hide-details
-                    autocomplete="street-address"
-                    :rules="addressRules"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="rsvpForm.dietaryRestrictions"
-                    label="Dietary Restrictions"
-                    variant="underlined"
-                    density="compact"
-                    hide-details
-                    :rules="dietaryRules"
-                  />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="rsvpForm.songRequest"
-                    label="Song Request"
-                    variant="underlined"
-                    density="compact"
-                    hide-details
-                    :rules="songRules"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="rsvpForm.message"
-                    label="Message"
-                    variant="underlined"
-                    density="compact"
-                    hide-details
-                    rows="2"
-                    auto-grow
-                    max-rows="4"
-                    :rules="messageRules"
-                  />
-                </v-col>
-              </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+        <v-divider class="my-6" />
+
+        <div class="section-label">Optional</div>
+        <v-row dense>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="rsvpForm.email"
+              label="Email Address"
+              variant="underlined"
+              density="compact"
+              hide-details
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              :rules="emailRules"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="rsvpForm.address"
+              label="Address"
+              variant="underlined"
+              density="compact"
+              hide-details
+              autocomplete="street-address"
+              :rules="addressRules"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="rsvpForm.dietaryRestrictions"
+              label="Dietary Restrictions"
+              variant="underlined"
+              density="compact"
+              hide-details
+              :rules="dietaryRules"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="rsvpForm.songRequest"
+              label="Song Request"
+              variant="underlined"
+              density="compact"
+              hide-details
+              :rules="songRules"
+            />
+          </v-col>
+
+          <v-col cols="12">
+            <v-textarea
+              v-model="rsvpForm.message"
+              label="Message"
+              variant="underlined"
+              density="compact"
+              hide-details
+              rows="2"
+              auto-grow
+              max-rows="4"
+              :rules="messageRules"
+            />
+          </v-col>
+        </v-row>
 
         <div class="rsvp-footer">
           <div ref="rsvpVineRef" class="rsvp-vine" aria-hidden="true" v-html="rsvpVineSvgMarkup" />
