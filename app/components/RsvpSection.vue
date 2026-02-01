@@ -148,7 +148,7 @@
         </v-row>
 
         <div class="rsvp-footer">
-          <div ref="rsvpVineRef" class="rsvp-vine" aria-hidden="true" v-html="rsvpVineSvgMarkup" />
+          <Vine2Divider />
           <v-btn
             type="button"
             color="primary"
@@ -170,11 +170,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, onMounted, onBeforeUnmount } from 'vue'
-import * as anime from 'animejs'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { useHead, useRuntimeConfig } from '#imports'
 import { wedding } from '~/data/wedding'
-import rsvpVineSvg from '~/assets/svgs/vine2.svg?raw'
 
 type Grecaptcha = {
   ready: (cb: () => void) => void
@@ -281,7 +279,6 @@ const rsvpBgStyle = computed(() => ({
   backgroundImage: rsvpPhotoSrc.value ? `url(${rsvpPhotoSrc.value})` : 'none',
 }))
 const rsvpOptionalPanel = ref<number | null>(null)
-const rsvpVineRef = ref<HTMLElement | null>(null)
 
 const rsvpForm = reactive({
   name: '',
@@ -453,69 +450,4 @@ async function submitRsvp() {
     rsvpSubmitting.value = false
   }
 }
-
-const rsvpVineSvgMarkup = rsvpVineSvg
-  .replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ')
-  .replace(
-    '<path style="fill:#2F2F30;" d="M444.18,201.195',
-    '<path class="rsvp-vine-static" style="fill:#2F2F30;" d="M444.18,201.195'
-  )
-  .replace(
-    '<path style="fill:#2F2F30;" d="M57.741,215.305',
-    '<path class="rsvp-vine-flow" style="fill:#2F2F30;" d="M57.741,215.305'
-  )
-
-let rsvpVineFlowAnimation: anime.JSAnimation | null = null
-let rsvpVineLeafAnimation: anime.JSAnimation | null = null
-
-function startRsvpVineAnimation() {
-  if (rsvpVineFlowAnimation || rsvpVineLeafAnimation) return
-  const root = rsvpVineRef.value
-  if (!root) return
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-  const flow = root.querySelector('path.rsvp-vine-flow')
-  const leaves = root.querySelectorAll('path:not(.rsvp-vine-static):not(.rsvp-vine-flow)')
-
-  if (flow) {
-    rsvpVineFlowAnimation = anime.animate(flow, {
-      keyframes: [
-        { translateX: -3, translateY: 0.5, rotate: -0.6 },
-        { translateX: 3, translateY: -0.5, rotate: 0.6 },
-        { translateX: -3, translateY: 0.5, rotate: -0.6 },
-      ],
-      duration: 8500,
-      ease: 'inOutSine',
-      loop: true,
-      alternate: true,
-    })
-  }
-
-  if (leaves.length) {
-    rsvpVineLeafAnimation = anime.animate(leaves, {
-      keyframes: [
-        { translateX: -2, translateY: 0.5, rotate: -0.8 },
-        { translateX: 2, translateY: -0.5, rotate: 0.8 },
-        { translateX: -2, translateY: 0.5, rotate: -0.8 },
-      ],
-      duration: 6800,
-      delay: anime.stagger(45, { from: 'center' }),
-      ease: 'inOutSine',
-      loop: true,
-      alternate: true,
-    })
-  }
-}
-
-onMounted(async () => {
-  await nextTick()
-  startRsvpVineAnimation()
-})
-
-onBeforeUnmount(() => {
-  rsvpVineFlowAnimation?.pause()
-  rsvpVineLeafAnimation?.pause()
-  rsvpVineFlowAnimation = null
-  rsvpVineLeafAnimation = null
-})
 </script>
