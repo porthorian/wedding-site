@@ -37,20 +37,7 @@
           :options="{ threshold: 0.5 }"
           transition="fade-transition"
         >
-          <v-card elevation="0">
-            <v-card-text class="panel-content">
-              <h2 class="panel-title">Our Schedule</h2>
-              <v-row>
-                <v-col v-for="item in wedding.schedule" :key="item.time" cols="12" sm="6" md="3">
-                  <div class="mini-card">
-                    <div class="mini-time">{{ item.time }}</div>
-                    <div class="mini-title">{{ item.title }}</div>
-                    <div class="mini-detail">{{ item.detail }}</div>
-                  </div>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
+          <ScheduleSection />
         </v-lazy>
       </section>
 

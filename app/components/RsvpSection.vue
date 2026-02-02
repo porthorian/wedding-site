@@ -2,7 +2,7 @@
   <v-card elevation="0" class="rsvp-card">
     <div class="rsvp-bg-image" :style="rsvpBgStyle" aria-hidden="true" />
     <v-card-text class="panel-content panel-content--rsvp">
-      <h2 class="panel-title">RSVP &amp; Song Request</h2>
+      <h2 class="panel-title">RSVP</h2>
       <v-form
         id="rsvpForm"
         ref="rsvpFormRef"
