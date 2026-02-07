@@ -66,8 +66,8 @@ onUnmounted(() => clearInterval(interval))
 }
 
 .countdown-cell {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(210, 187, 165, 0.4);
+  background: rgba(var(--panel-surface-strong-rgb), 0.84);
+  border: 1px solid rgba(var(--panel-border-rgb), 0.45);
   border-radius: 12px;
   padding: 12px 8px;
 }
@@ -81,6 +81,6 @@ onUnmounted(() => clearInterval(interval))
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(58, 45, 42, 0.6);
+  color: rgba(var(--ink-muted-rgb), 0.68);
 }
 </style>

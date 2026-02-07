@@ -2,6 +2,18 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  app: {
+    head: {
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap',
+        },
+      ],
+    },
+  },
   runtimeConfig: {
     recaptchaSecret: process.env.RECAPTCHA_SECRET,
     recaptchaMinimumScore: process.env.RECAPTCHA_MINIMUM_SCORE ? Number(process.env.RECAPTCHA_MINIMUM_SCORE) : 0.5,
@@ -24,6 +36,11 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/image',
   ],
+  fonts: {
+    families: [
+      { name: 'Pinyon Script', provider: 'none' },
+    ],
+  },
   build: {
     transpile: ['vuetify'],
   },

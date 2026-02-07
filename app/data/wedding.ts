@@ -1,25 +1,25 @@
 export const wedding = {
-  names: 'Rosa & Vinnie',
+  names: 'Rosa & Vincent',
   dateISO: '2026-08-07T16:30:00-04:00',
   location: 'The TillingHouse, Tinton Falls, NJ',
   hero: {
     dateDisplay: 'August 7, 2026',
     timeDisplay: '4:30 PM',
-    tagline: 'A garden ceremony, candlelit dinner, and dancing beneath drifting blooms.',
+    tagline: '',
     ctas: [
-      { label: 'RSVP', href: '#rsvp' },
+      { label: 'Registry', href: '#registry' },
       { label: 'View Schedule', href: '#schedule' },
       { label: 'Travel', href: '#travel' },
     ],
   },
   schedule: [
-    { time: '4:30 PM', title: 'Ceremony', detail: 'Arrive by 4:15 PM' },
-    { time: '5:15 PM', title: 'Cocktail Hour', detail: 'Drinks + bites' },
-    { time: '6:30 PM', title: 'Reception', detail: 'Dinner + dancing' },
-    { time: '10:45 PM', title: 'Last Call', detail: 'One more song' },
+    { time: '3:00 PM', title: 'Ceremony', detail: 'Arrive by 2:45 PM @ Saint Mary\'s Church in Deal, NJ' },
+    { time: "4:00 PM", title: 'Limbo', detail: 'TBD' },
+    { time: '6:00 PM', title: 'Cocktail Hour', detail: 'Drinks + bites' },
+    { time: '7:00 PM', title: 'Reception', detail: 'Dinner + dancing' },
   ],
   travel: {
-    airports: ['EWR (Newark)'],
+    airports: [],
     hotels: [
       { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD - Shuttle to Venue' },
       { name: 'Doubletree by Hilton Tinton Falls Eatontown', url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown', note: 'Closest to venue' },
@@ -29,25 +29,33 @@ export const wedding = {
       "If you're staying near the shore, plan ~20 min drive.",
     ],
     photo:
-      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
+      '/images/tillinghouse_sketch.png',
   },
   registry: [
     { name: 'Williams Sonoma', url: 'https://www.williams-sonoma.com/registry/q2tgk9rvsg/registry-list.html' },
     { name: 'Crate & Barrel', url: 'https://www.crateandbarrel.com/gift-registry/rosa-franze-and-vinnie-marone/r7391211' },
-    { name: 'Amazon', url: 'https://www.amazon.com/wedding/guest-view/3UW4QAP93JK2E' },
+    { name: 'Anthropologie', url: 'https://www.anthropologie.com/registry/listing?registryId=58FCF2E3B22A'},
   ],
   gallery: [
-    {
-      title: 'Engagement at the shore',
-      url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
-    },
-    {
-      title: 'Sunset picnic',
-      url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
-    },
-    {
-      title: 'City stroll',
-      url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
-    },
+    { url: '/images/gallery/JoePalaiaEngagementSession133191.jpg' },
+    { url: '/images/gallery/JoePalaiaEngagementSession133201.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134083.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134134 (1).jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134138.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134139.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134143.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134146.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134153.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134157.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134159.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134160.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134163.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134166 (1).jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134188.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134193.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134217.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134218.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134228.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134230.jpg' }
   ],
 }

@@ -1,6 +1,6 @@
 <template>
   <div ref="rootRef" class="schedule-shell">
-    <v-card elevation="0" class="schedule-card">
+    <v-card elevation="1" class="schedule-card rounded-xl">
       <div class="schedule-decor" aria-hidden="true">
         <WhimsyWindArt class="schedule-decor-art schedule-decor-art--right" :strength="1.2" />
         <WhimsyWindArt
@@ -8,7 +8,7 @@
           :draw="false"
           :flutter="false"
           :strength="0.9"
-          style="color: rgba(211, 107, 124, 0.75)"
+          style="color: rgba(var(--magenta-main-rgb), 0.72)"
         />
       </div>
 
