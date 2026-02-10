@@ -1,7 +1,7 @@
 export const wedding = {
   names: 'Rosa & Vincent',
   dateISO: '2026-08-07T16:30:00-04:00',
-  location: 'The TillingHouse, Tinton Falls, NJ',
+  location: 'The TillingHouse, Eatontown, NJ',
   hero: {
     dateDisplay: 'August 7, 2026',
     timeDisplay: '4:30 PM',
@@ -17,12 +17,15 @@ export const wedding = {
     { time: "4:00 PM", title: 'Limbo', detail: 'TBD' },
     { time: '6:00 PM', title: 'Cocktail Hour', detail: 'Drinks + bites' },
     { time: '7:00 PM', title: 'Reception', detail: 'Dinner + dancing' },
+    { time: '11:00 PM', title: 'End of Night?', detail: 'TBD' },
   ],
   travel: {
-    airports: [],
+    airports: [
+      { code: 'EWR', name: 'Newark Liberty International Airport', note: 'Usually the quickest option to Eatontown (~45–60 min)' },
+    ],
     hotels: [
       { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD - Shuttle to Venue' },
-      { name: 'Doubletree by Hilton Tinton Falls Eatontown', url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown', note: 'Closest to venue' },
+      { name: 'Doubletree by Hilton Tinton Falls', url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown', note: 'Closest to venue' },
     ],
     gettingAround: [
       'Uber/Lyft is widely available.',
@@ -32,9 +35,33 @@ export const wedding = {
       '/images/tillinghouse_sketch.png',
   },
   registry: [
-    { name: 'Williams Sonoma', url: 'https://www.williams-sonoma.com/registry/q2tgk9rvsg/registry-list.html' },
-    { name: 'Crate & Barrel', url: 'https://www.crateandbarrel.com/gift-registry/rosa-franze-and-vinnie-marone/r7391211' },
-    { name: 'Anthropologie', url: 'https://www.anthropologie.com/registry/listing?registryId=58FCF2E3B22A'},
+    {
+      name: 'Williams Sonoma',
+      url: 'https://www.williams-sonoma.com/registry/q2tgk9rvsg/registry-list.html',
+      tagline: 'Kitchen and hosting classics',
+      blurb:
+        'A mix of cookware, table details, and the pieces we picture using for holiday dinners and weekend breakfasts.',
+      highlights: ['Cookware', 'Bakeware', 'Tabletop'],
+      accent: 'rgba(224, 170, 88, 0.3)',
+    },
+    {
+      name: 'Crate & Barrel',
+      url: 'https://www.crateandbarrel.com/gift-registry/rosa-franze-and-vinnie-marone/r7391211',
+      tagline: 'Everyday home staples',
+      blurb:
+        'Core home essentials and practical upgrades that will become part of our regular routine right away.',
+      highlights: ['Dining set', 'Barware', 'Entertaining'],
+      accent: 'rgba(168, 168, 168, 0.28)',
+    },
+    {
+      name: 'Anthropologie',
+      url: 'https://www.anthropologie.com/registry/listing?registryId=58FCF2E3B22A',
+      tagline: 'Character pieces and decor',
+      blurb:
+        'Decor and special pieces with color and personality that make a house feel warm and finished.',
+      highlights: ['Decor', 'Glassware', 'Textiles'],
+      accent: 'rgba(191, 153, 117, 0.28)',
+    },
   ],
   gallery: [
     { url: '/images/gallery/JoePalaiaEngagementSession133191.jpg' },
