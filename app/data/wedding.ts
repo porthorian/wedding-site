@@ -4,7 +4,7 @@ export const wedding = {
   location: 'The TillingHouse, Eatontown, NJ',
   hero: {
     dateDisplay: 'August 7, 2026',
-    timeDisplay: '4:30 PM',
+    timeDisplay: '3:00 PM',
     tagline: '',
     ctas: [
       { label: 'Registry', href: '#registry' },
