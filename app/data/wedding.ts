@@ -24,8 +24,7 @@ export const wedding = {
       // { code: 'EWR', name: 'Newark Liberty International Airport', note: 'Usually the quickest option to Eatontown (~45–60 min)' },
     ],
     hotels: [
-      { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD - Shuttle to Venue' },
-      { name: 'Doubletree by Hilton Tinton Falls', url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown', note: 'Closest to venue' },
+      { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD' },
     ],
     gettingAround: [
       'Uber/Lyft is widely available.',
