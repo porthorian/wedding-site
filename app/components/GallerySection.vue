@@ -9,14 +9,18 @@
           <p class="muted gallery-intro">
             A few favorites from our engagement session. Tap any photo to open the full set.
           </p>
-          <v-btn
-            class="text-none"
-            color="primary"
-            variant="elevated"
-            @click="openLightbox(0)"
-          >
-            Open Full Gallery ({{ totalPhotos }})
-          </v-btn>
+
+          <div class="gallery-toolbar">
+            <v-btn
+              class="text-none gallery-open-btn"
+              color="primary"
+              variant="elevated"
+              rounded="pill"
+              @click="openLightbox(0)"
+            >
+              Open Full Gallery ({{ totalPhotos }})
+            </v-btn>
+          </div>
         </header>
 
         <div class="gallery-mosaic">
@@ -26,16 +30,22 @@
             type="button"
             class="gallery-tile"
             :class="tileClass(index)"
-            :aria-label="`Open ${photoLabel(photo.url, index)} in gallery`"
+            :aria-label="`Open ${photoLabel(index)} in gallery`"
             @click="openLightbox(index)"
           >
-            <v-img
-              :src="photo.url"
-              :alt="photoLabel(photo.url, index)"
+            <NuxtImg
+              :src="encodedPhotoUrl(photo.url)"
+              :alt="photoLabel(index)"
               class="gallery-tile-image"
-              cover
-              height="100%"
+              sizes="(max-width: 960px) 50vw, (max-width: 1360px) 28vw, 24vw"
+              :loading="index === 0 ? 'eager' : 'lazy'"
+              :fetchpriority="index === 0 ? 'high' : 'auto'"
+              decoding="async"
+              fit="cover"
+              format="webp"
+              :quality="78"
             />
+            <span v-if="index === 0" class="gallery-tile-feature">Featured</span>
             <span class="gallery-tile-index">{{ String(index + 1).padStart(2, '0') }}</span>
             <span
               v-if="isLastMosaicTile(index)"
@@ -70,13 +80,17 @@
           </button>
 
           <div class="gallery-lightbox-image-wrap">
-            <v-img
+            <NuxtImg
               v-if="activePhoto"
-              :src="activePhoto.url"
-              :alt="photoLabel(activePhoto.url, galleryIndex)"
+              :src="encodedPhotoUrl(activePhoto.url)"
+              :alt="photoLabel(galleryIndex)"
               class="gallery-lightbox-image"
-              contain
-              height="70vh"
+              sizes="100vw"
+              loading="eager"
+              decoding="async"
+              fit="inside"
+              format="webp"
+              :quality="86"
             />
           </div>
 
@@ -96,7 +110,18 @@
             :aria-selected="index === galleryIndex"
             @click="galleryIndex = index"
           >
-            <v-img :src="photo.url" :alt="photoLabel(photo.url, index)" cover height="72" />
+            <NuxtImg
+              :src="encodedPhotoUrl(photo.url)"
+              :alt="photoLabel(index)"
+              class="gallery-thumb-image"
+              width="92"
+              height="72"
+              loading="lazy"
+              decoding="async"
+              fit="cover"
+              format="webp"
+              :quality="68"
+            />
           </button>
         </div>
       </v-card>
@@ -114,34 +139,44 @@ const galleryIndex = ref(0)
 const isLightboxOpen = ref(false)
 let introAnimation: anime.JSAnimation | null = null
 
+const tilePattern = [
+  'gallery-tile--hero',
+  'gallery-tile--tall',
+  'gallery-tile--small',
+  'gallery-tile--wide',
+  'gallery-tile--small',
+  'gallery-tile--small',
+  'gallery-tile--tall',
+  'gallery-tile--wide',
+  'gallery-tile--small',
+  'gallery-tile--small',
+  'gallery-tile--tall',
+  'gallery-tile--wide',
+] as const
+
 const photos = computed(() => wedding.gallery ?? [])
 const totalPhotos = computed(() => photos.value.length)
-const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(12, photos.value.length)))
+const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(8, photos.value.length)))
 const hiddenPhotoCount = computed(() => Math.max(0, totalPhotos.value - mosaicPhotos.value.length))
 const activePhoto = computed(() => photos.value[galleryIndex.value] ?? null)
+const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
 
 function tileClass(index: number): string {
-  const pattern = [
-    'gallery-tile--hero',
-    'gallery-tile--tall',
-    'gallery-tile--small',
-    'gallery-tile--wide',
-    'gallery-tile--small',
-    'gallery-tile--small',
-    'gallery-tile--tall',
-    'gallery-tile--wide',
-    'gallery-tile--small',
-    'gallery-tile--small',
-    'gallery-tile--tall',
-    'gallery-tile--wide',
-  ]
-  return pattern[index % pattern.length]
+  return tilePattern[index % tilePattern.length]
 }
 
-function photoLabel(url: string, index: number): string {
+function formatPhotoLabel(url: string, index: number): string {
   const fileName = decodeURIComponent(url.split('/').pop()?.split('?')[0] ?? '')
   const normalized = fileName.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim()
   return normalized || `Photo ${index + 1}`
+}
+
+function photoLabel(index: number): string {
+  return photoLabels.value[index] ?? `Photo ${index + 1}`
+}
+
+function encodedPhotoUrl(url: string): string {
+  return encodeURI(url)
 }
 
 function openLightbox(index: number) {
@@ -256,6 +291,45 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
+.gallery-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gallery-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gallery-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.4);
+  background:
+    linear-gradient(180deg, rgba(var(--panel-surface-rgb), 0.96), rgba(var(--panel-surface-rgb), 0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 8px 16px rgba(var(--ink-rgb), 0.1);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(var(--ink-rgb), 0.88);
+}
+
+:deep(.gallery-open-btn.v-btn) {
+  height: 40px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  padding-inline: 16px;
+}
+
 .gallery-mosaic {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -266,22 +340,49 @@ onBeforeUnmount(() => {
 .gallery-tile {
   position: relative;
   overflow: hidden;
-  border: 0;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.36);
   padding: 0;
   cursor: zoom-in;
   border-radius: 12px;
+  background: rgba(var(--panel-surface-rgb), 0.8);
   box-shadow: 0 12px 20px rgba(var(--ink-rgb), 0.12);
   transition: transform 230ms ease, box-shadow 230ms ease;
 }
 
 .gallery-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 30px rgba(var(--ink-rgb), 0.16);
+  box-shadow: 0 22px 34px rgba(var(--ink-rgb), 0.2);
+}
+
+.gallery-tile:hover .gallery-tile-image {
+  transform: scale(1.06);
 }
 
 .gallery-tile-image {
+  display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  transition: transform 420ms ease;
+}
+
+.gallery-tile-feature {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(3px);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .gallery-tile::after {
@@ -365,7 +466,17 @@ onBeforeUnmount(() => {
 }
 
 .gallery-lightbox-image-wrap {
+  position: relative;
   min-width: 0;
+  min-height: min(70vh, 780px);
+  display: grid;
+  place-items: center;
+}
+
+.gallery-lightbox-image {
+  width: 100%;
+  height: min(70vh, 780px);
+  object-fit: contain;
 }
 
 .gallery-nav-btn {
@@ -397,12 +508,28 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
+.gallery-thumb-image {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+}
+
 .gallery-thumb--active {
   opacity: 1;
   border-color: rgba(var(--v-theme-primary), 0.7);
 }
 
 @media (max-width: 960px) {
+  .gallery-toolbar {
+    justify-content: flex-start;
+  }
+
+  :deep(.gallery-open-btn.v-btn) {
+    width: 100%;
+    justify-content: center;
+  }
+
   .gallery-mosaic {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: 110px;

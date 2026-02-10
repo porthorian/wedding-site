@@ -67,7 +67,7 @@ export const wedding = {
     { url: '/images/gallery/JoePalaiaEngagementSession133191.jpg' },
     { url: '/images/gallery/JoePalaiaEngagementSession133201.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134083.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134134 (1).jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134134.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134138.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134139.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134143.jpg' },
