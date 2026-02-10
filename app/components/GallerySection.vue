@@ -74,25 +74,40 @@
         </div>
 
         <div class="gallery-lightbox-main">
-          <button type="button" class="gallery-nav-btn" aria-label="Previous photo" @click="prevPhoto">
-            ‹
-          </button>
+          <v-btn
+            class="gallery-nav-btn"
+            aria-label="Previous photo"
+            variant="outlined"
+            icon
+            @click="prevPhoto"
+          >
+            <span class="gallery-nav-glyph" aria-hidden="true">‹</span>
+          </v-btn>
 
           <div class="gallery-lightbox-image-wrap">
-            <v-img
-              v-if="activePhoto"
-              :src="encodedPhotoUrl(activePhoto.url)"
-              :alt="photoLabel(galleryIndex)"
-              class="gallery-lightbox-image"
-              height="min(70vh, 780px)"
-              contain
-              eager
-            />
+            <Transition name="gallery-lightbox-fade" mode="out-in">
+              <img
+                v-if="activePhotoSrc"
+                :key="activePhotoSrc"
+                :src="activePhotoSrc"
+                :alt="photoLabel(galleryIndex)"
+                class="gallery-lightbox-image"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+              />
+            </Transition>
           </div>
 
-          <button type="button" class="gallery-nav-btn" aria-label="Next photo" @click="nextPhoto">
-            ›
-          </button>
+          <v-btn
+            class="gallery-nav-btn"
+            aria-label="Next photo"
+            variant="outlined"
+            icon
+            @click="nextPhoto"
+          >
+            <span class="gallery-nav-glyph" aria-hidden="true">›</span>
+          </v-btn>
         </div>
 
         <div class="gallery-filmstrip" role="listbox" aria-label="Gallery thumbnails">
@@ -104,7 +119,9 @@
             :class="{ 'gallery-thumb--active': index === galleryIndex }"
             :aria-label="`View photo ${index + 1}`"
             :aria-selected="index === galleryIndex"
-            @click="galleryIndex = index"
+            @mouseenter="warmLightboxPhoto(index)"
+            @focus="warmLightboxPhoto(index)"
+            @click="selectPhoto(index)"
           >
             <NuxtImg
               :src="encodedPhotoUrl(photo.url)"
@@ -125,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 
@@ -154,7 +171,14 @@ const totalPhotos = computed(() => photos.value.length)
 const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(9, photos.value.length)))
 const hiddenPhotoCount = computed(() => Math.max(0, totalPhotos.value - mosaicPhotos.value.length))
 const activePhoto = computed(() => photos.value[galleryIndex.value] ?? null)
+const activePhotoSrc = computed(() => {
+  if (!activePhoto.value) return ''
+  return encodedPhotoUrl(activePhoto.value.url)
+})
 const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
+const preloadedLightboxSources = new Set<string>()
+const lightboxPreloadQueue = new Map<string, Promise<void>>()
+let preloadAllTimer: number | null = null
 
 function tileClass(index: number): string {
   return tilePattern[index % tilePattern.length] ?? 'gallery-tile--small'
@@ -174,20 +198,114 @@ function encodedPhotoUrl(url: string): string {
   return encodeURI(url)
 }
 
+function toCircularIndex(index: number): number {
+  if (!totalPhotos.value) return 0
+  return (index % totalPhotos.value + totalPhotos.value) % totalPhotos.value
+}
+
+function lightboxSrcAt(index: number): string {
+  if (!totalPhotos.value) return ''
+  const normalizedIndex = toCircularIndex(index)
+  const entry = photos.value[normalizedIndex]
+  if (!entry) return ''
+  return encodedPhotoUrl(entry.url)
+}
+
+function preloadLightboxSource(source: string): Promise<void> {
+  if (!source || preloadedLightboxSources.has(source)) return Promise.resolve()
+  const queued = lightboxPreloadQueue.get(source)
+  if (queued) return queued
+
+  const preloadPromise = new Promise<void>((resolve) => {
+    const image = new Image()
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      preloadedLightboxSources.add(source)
+      lightboxPreloadQueue.delete(source)
+      resolve()
+    }
+
+    image.onload = finish
+    image.onerror = finish
+    image.decoding = 'async'
+    image.src = source
+
+    if (image.complete) {
+      finish()
+      return
+    }
+
+    if (typeof image.decode === 'function') {
+      void image.decode().then(finish).catch(() => {})
+    }
+  })
+
+  lightboxPreloadQueue.set(source, preloadPromise)
+  return preloadPromise
+}
+
+function preloadAround(index: number, radius = 2) {
+  if (!totalPhotos.value) return
+  for (let offset = -radius; offset <= radius; offset += 1) {
+    const source = lightboxSrcAt(index + offset)
+    if (!source) continue
+    void preloadLightboxSource(source)
+  }
+}
+
+function preloadAllLightboxImages() {
+  for (let index = 0; index < totalPhotos.value; index += 1) {
+    const source = lightboxSrcAt(index)
+    if (!source) continue
+    void preloadLightboxSource(source)
+  }
+}
+
+function schedulePreloadAll() {
+  if (preloadAllTimer !== null) window.clearTimeout(preloadAllTimer)
+  preloadAllTimer = window.setTimeout(() => {
+    preloadAllTimer = null
+    preloadAllLightboxImages()
+  }, 260)
+}
+
+function warmLightboxPhoto(index: number) {
+  const source = lightboxSrcAt(index)
+  if (!source) return
+  void preloadLightboxSource(source)
+}
+
 function openLightbox(index: number) {
   if (!totalPhotos.value) return
   galleryIndex.value = Math.min(Math.max(index, 0), totalPhotos.value - 1)
   isLightboxOpen.value = true
+  warmLightboxPhoto(galleryIndex.value)
+  preloadAround(galleryIndex.value, 3)
+  schedulePreloadAll()
+}
+
+function selectPhoto(index: number) {
+  if (!totalPhotos.value) return
+  const nextIndex = Math.min(Math.max(index, 0), totalPhotos.value - 1)
+  warmLightboxPhoto(nextIndex)
+  galleryIndex.value = nextIndex
+  preloadAround(galleryIndex.value, 3)
 }
 
 function nextPhoto() {
   if (!totalPhotos.value) return
-  galleryIndex.value = (galleryIndex.value + 1) % totalPhotos.value
+  const nextIndex = (galleryIndex.value + 1) % totalPhotos.value
+  warmLightboxPhoto(nextIndex)
+  galleryIndex.value = nextIndex
 }
 
 function prevPhoto() {
   if (!totalPhotos.value) return
-  galleryIndex.value = (galleryIndex.value - 1 + totalPhotos.value) % totalPhotos.value
+  const prevIndex = (galleryIndex.value - 1 + totalPhotos.value) % totalPhotos.value
+  warmLightboxPhoto(prevIndex)
+  galleryIndex.value = prevIndex
 }
 
 function isLastMosaicTile(index: number): boolean {
@@ -225,6 +343,17 @@ function startIntroAnimation() {
   })
 }
 
+watch(isLightboxOpen, (open) => {
+  if (!open) return
+  preloadAround(galleryIndex.value, 3)
+  schedulePreloadAll()
+})
+
+watch(galleryIndex, (index) => {
+  if (!isLightboxOpen.value) return
+  preloadAround(index, 3)
+})
+
 onMounted(async () => {
   await nextTick()
   startIntroAnimation()
@@ -234,6 +363,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   introAnimation?.pause()
   introAnimation = null
+  if (preloadAllTimer !== null) {
+    window.clearTimeout(preloadAllTimer)
+    preloadAllTimer = null
+  }
   window.removeEventListener('keydown', onWindowKeydown)
 })
 </script>
@@ -463,30 +596,58 @@ onBeforeUnmount(() => {
 .gallery-lightbox-image-wrap {
   position: relative;
   min-width: 0;
+  height: min(70vh, 780px);
   min-height: min(70vh, 780px);
+  max-height: min(70vh, 780px);
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
 
 .gallery-lightbox-image {
   width: 100%;
   height: min(70vh, 780px);
-}
-
-.gallery-lightbox-image :deep(.v-img__img) {
   object-fit: contain;
+  display: block;
+  will-change: opacity;
 }
 
-.gallery-nav-btn {
-  width: 42px;
-  height: 42px;
+.gallery-lightbox-fade-enter-active,
+.gallery-lightbox-fade-leave-active {
+  transition: opacity 140ms ease;
+}
+
+.gallery-lightbox-fade-enter-from,
+.gallery-lightbox-fade-leave-to {
+  opacity: 0;
+}
+
+:deep(.gallery-nav-btn.v-btn) {
+  min-width: 46px;
+  width: 46px;
+  height: 46px;
   border-radius: 999px;
   border: 1px solid rgba(var(--panel-border-rgb), 0.32);
   background: rgba(var(--panel-surface-rgb), 0.8);
-  font-size: 28px;
+  box-shadow: 0 6px 14px rgba(var(--ink-rgb), 0.12);
+}
+
+:deep(.gallery-nav-btn.v-btn:hover) {
+  background: rgba(var(--panel-surface-rgb), 0.94);
+  border-color: rgba(var(--panel-border-rgb), 0.52);
+}
+
+:deep(.gallery-nav-btn .v-btn__content) {
+  color: rgba(var(--ink-rgb), 0.92);
+}
+
+.gallery-nav-glyph {
+  display: inline-block;
+  font-size: 34px;
   line-height: 1;
-  color: var(--paper-ink);
-  cursor: pointer;
+  font-weight: 400;
+  color: currentColor;
+  transform: translateY(-1px);
 }
 
 .gallery-filmstrip {
