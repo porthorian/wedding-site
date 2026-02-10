@@ -72,6 +72,7 @@ h3 {
 
 .landing-section .v-lazy {
   width: 100%;
+  display: block;
 }
 
 .page-sections {
@@ -986,20 +987,33 @@ h3 {
 
 @media (max-width: 960px) {
   .page-shell--snap {
-    scroll-snap-type: y proximity;
+    scroll-snap-type: y mandatory;
+  }
+
+  .page-sections {
+    padding-top: 10px !important;
+    padding-bottom: 20px !important;
   }
 
   .landing-section {
-    align-items: stretch;
-    padding-block: clamp(16px, 3.6svh, 28px);
+    min-height: 100svh;
+    min-height: 100dvh;
+    align-items: center;
+    padding-block: clamp(14px, 3svh, 24px);
+  }
+
+  .landing-section + .landing-section {
+    margin-top: clamp(18px, 4.4svh, 34px);
   }
 
   .landing-section--footer {
-    padding-block: clamp(12px, 2.8svh, 22px);
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-block: clamp(14px, 3svh, 24px);
   }
 
   .section-card {
-    min-height: auto;
+    min-height: min(82svh, 860px);
   }
 
   .section-card > .v-card-text {
@@ -1043,13 +1057,24 @@ h3 {
 }
 
 @media (max-width: 760px) {
+  .page-sections {
+    padding-top: 8px !important;
+    padding-bottom: 16px !important;
+  }
+
   .landing-section {
-    min-height: auto;
-    padding-block: 16px;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-block: clamp(12px, 2.8svh, 20px);
+  }
+
+  .landing-section + .landing-section {
+    margin-top: clamp(14px, 5vw, 24px);
   }
 
   .landing-section--hero {
-    min-height: min(100dvh, 840px);
+    min-height: 100svh;
+    min-height: 100dvh;
   }
 
   .hero-frame {
@@ -1088,6 +1113,12 @@ h3 {
 @media (max-width: 560px) {
   .page-sections {
     padding-inline: 10px !important;
+    padding-top: 8px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .landing-section + .landing-section {
+    margin-top: 14px;
   }
 
   .section-card > .v-card-text {

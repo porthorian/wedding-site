@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f1f1f" />
+      <stop offset="100%" stop-color="#4a4a4a" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <text
+    x="50%"
+    y="53%"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-size="26"
+    font-family="'Cormorant Garamond', 'Times New Roman', serif"
+    fill="#f8f8f8"
+    font-weight="700"
+    letter-spacing="0.04em"
+  >
+    RV
+  </text>
+</svg>

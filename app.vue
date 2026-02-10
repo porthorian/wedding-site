@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-// No script needed
+// Root shell only
 </script>
