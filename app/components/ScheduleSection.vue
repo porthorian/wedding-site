@@ -42,15 +42,11 @@
 
             <div class="runshow-facts">
               <div class="runshow-fact">
-                <span class="runshow-fact-label">Moments</span>
-                <span class="runshow-fact-value">{{ totalMoments }}</span>
-              </div>
-              <div class="runshow-fact">
                 <span class="runshow-fact-label">Starts</span>
                 <span class="runshow-fact-value">{{ firstScheduleItem?.time ?? wedding.hero.timeDisplay }}</span>
               </div>
               <div class="runshow-fact">
-                <span class="runshow-fact-label">Finale</span>
+                <span class="runshow-fact-label">Ends</span>
                 <span class="runshow-fact-value">{{ lastScheduleItem?.time ?? '--:--' }}</span>
               </div>
             </div>

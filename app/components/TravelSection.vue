@@ -12,86 +12,81 @@
       </div>
 
       <v-card-text class="panel-content travel-content">
-        <div class="travel-header">
+        <header class="travel-header">
           <h2 class="panel-title">Travel &amp; Accommodations</h2>
           <p class="muted travel-intro">
             Everything in one place for booking your stay and planning your weekend logistics.
           </p>
-        </div>
+        </header>
 
-        <v-row class="travel-layout" dense>
-          <v-col cols="12" md="5">
-            <div class="travel-venue-card">
-              <v-img :src="wedding.travel.photo" alt="Venue area illustration" class="travel-venue-image" height="300" cover />
-              <div class="travel-venue-overlay">
-                <div class="travel-venue-kicker">Wedding Weekend</div>
-                <div class="travel-venue-title">{{ wedding.location }}</div>
-                <v-btn
-                  :href="venueMapUrl"
-                  target="_blank"
-                  rel="noreferrer"
-                  class="text-none travel-venue-map-btn"
-                  color="primary"
-                  variant="elevated"
-                  size="small"
-                  rounded="pill"
-                >
-                  Open Venue In Maps
-                </v-btn>
-              </div>
+        <article class="travel-hero">
+          <v-img
+            :src="wedding.travel.photo"
+            alt="The TillingHouse sketch"
+            class="travel-hero-image"
+            cover
+          />
+          <div class="travel-hero-overlay">
+            <div class="travel-hero-meta">
+              <span class="travel-hero-kicker">Wedding Weekend Venue</span>
+              <span class="travel-hero-date">{{ wedding.hero.dateDisplay }}</span>
             </div>
+            <h3 class="travel-hero-title">{{ wedding.location }}</h3>
+            <p class="travel-hero-copy">Ceremony and reception destination for the weekend.</p>
+            <v-btn
+              :href="venueMapUrl"
+              target="_blank"
+              rel="noreferrer"
+              class="text-none travel-hero-map-btn"
+              color="primary"
+              variant="elevated"
+              rounded="pill"
+            >
+              Open Venue In Maps
+            </v-btn>
+          </div>
+        </article>
 
-            <div class="travel-note-stack">
+        <div class="travel-bottom">
+          <section class="travel-block">
+            <div class="section-label">Hotels</div>
+            <div class="travel-hotel-grid">
               <article
-                v-for="(note, index) in wedding.travel.gettingAround"
-                :key="note"
-                class="travel-note-card"
+                v-for="hotel in wedding.travel.hotels"
+                :key="hotel.name"
+                class="travel-hotel-card"
               >
-                <span class="travel-note-index">{{ String(index + 1).padStart(2, '0') }}</span>
-                <span class="travel-note-text">{{ note }}</span>
+                <h3 class="travel-hotel-name">{{ hotel.name }}</h3>
+                <p class="muted travel-hotel-note">{{ hotel.note }}</p>
+
+                <div class="travel-hotel-actions">
+                  <v-btn
+                    :href="hotel.url"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="text-none"
+                    color="primary"
+                    variant="elevated"
+                    size="small"
+                  >
+                    Book
+                  </v-btn>
+                  <v-btn
+                    :href="getMapSearchUrl(hotel.name)"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="text-none"
+                    variant="outlined"
+                    size="small"
+                  >
+                    Map
+                  </v-btn>
+                </div>
               </article>
             </div>
-          </v-col>
+          </section>
 
-          <v-col cols="12" md="7">
-            <section class="travel-block">
-              <div class="section-label">Hotels</div>
-              <div class="travel-hotel-grid">
-                <article
-                  v-for="hotel in wedding.travel.hotels"
-                  :key="hotel.name"
-                  class="travel-hotel-card"
-                >
-                  <h3 class="travel-hotel-name">{{ hotel.name }}</h3>
-                  <p class="muted travel-hotel-note">{{ hotel.note }}</p>
-
-                  <div class="travel-hotel-actions">
-                    <v-btn
-                      :href="hotel.url"
-                      target="_blank"
-                      rel="noreferrer"
-                      class="text-none"
-                      color="primary"
-                      variant="elevated"
-                      size="small"
-                    >
-                      Book
-                    </v-btn>
-                    <v-btn
-                      :href="getMapSearchUrl(hotel.name)"
-                      target="_blank"
-                      rel="noreferrer"
-                      class="text-none"
-                      variant="outlined"
-                      size="small"
-                    >
-                      Map
-                    </v-btn>
-                  </div>
-                </article>
-              </div>
-            </section>
-
+          <div class="travel-side-stack">
             <section class="travel-block">
               <div class="section-label">Airports</div>
               <div v-if="airports.length" class="travel-airport-list">
@@ -111,8 +106,22 @@
                 Newark Liberty (EWR) is typically the easiest option for this area.
               </p>
             </section>
-          </v-col>
-        </v-row>
+
+            <section class="travel-block">
+              <div class="section-label">Getting Around</div>
+              <div class="travel-note-stack">
+                <article
+                  v-for="(note, index) in wedding.travel.gettingAround"
+                  :key="note"
+                  class="travel-note-card"
+                >
+                  <span class="travel-note-index">{{ String(index + 1).padStart(2, '0') }}</span>
+                  <span class="travel-note-text">{{ note }}</span>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
       </v-card-text>
     </v-card>
   </div>
@@ -151,7 +160,7 @@ function startIntroAnimation() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
   const cards = root.querySelectorAll<HTMLElement>(
-    '.travel-venue-card, .travel-note-card, .travel-hotel-card, .travel-airport-item'
+    '.travel-header, .travel-hero, .travel-hotel-card, .travel-airport-item, .travel-note-card'
   )
   if (!cards.length) return
 
@@ -183,6 +192,8 @@ onBeforeUnmount(() => {
 .travel-card {
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.56);
+  background: rgba(var(--panel-surface-rgb), 0.92);
 }
 
 .travel-decor {
@@ -212,97 +223,174 @@ onBeforeUnmount(() => {
 .travel-content {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 20px);
 }
 
 .travel-header {
-  margin-bottom: 12px;
+  display: grid;
+  gap: 2px;
 }
 
 .travel-intro {
   margin: 0;
-  max-width: 60ch;
+  max-width: 62ch;
 }
 
-.travel-layout {
-  align-items: stretch;
-}
-
-.travel-venue-card {
+.travel-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid rgba(var(--panel-border-rgb), 0.44);
-  box-shadow: 0 16px 30px rgba(var(--ink-rgb), 0.12);
+  border-radius: 18px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.52);
+  box-shadow: 0 20px 34px rgba(var(--ink-rgb), 0.15);
+  min-height: clamp(260px, 34vw, 380px);
 }
 
-.travel-venue-image {
-  filter: saturate(0.88) contrast(0.95);
+.travel-hero-image {
+  height: clamp(260px, 34vw, 380px);
 }
 
-.travel-venue-overlay {
+.travel-hero-image :deep(.v-img__img) {
+  filter: saturate(0.9) contrast(0.97);
+}
+
+.travel-hero-overlay {
   position: absolute;
-  inset: auto 0 0 0;
-  padding: 14px;
+  inset: 0;
+  padding: clamp(16px, 2.4vw, 24px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
   background: linear-gradient(
-    to top,
-    rgba(var(--ink-rgb), 0.78),
-    rgba(var(--ink-rgb), 0.12)
+    180deg,
+    rgba(var(--ink-rgb), 0.22) 16%,
+    rgba(var(--ink-rgb), 0.84) 84%
   );
   color: #fff;
-  display: grid;
-  gap: 8px;
 }
 
-.travel-venue-kicker {
+.travel-hero-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.travel-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
+  font-weight: 700;
   text-transform: uppercase;
-  opacity: 0.88;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.82), rgba(18, 18, 18, 0.62));
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 18px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(2px);
+  padding: 6px 12px;
 }
 
-.travel-venue-title {
+.travel-hero-date {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.46);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 240, 240, 0.9));
+  color: rgba(var(--ink-rgb), 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(2px);
+  padding: 6px 12px;
+}
+
+.travel-hero-title {
+  margin: 0;
   font-family: var(--font-title);
-  font-size: 22px;
-  line-height: 1.1;
+  font-size: clamp(28px, 3.3vw, 42px);
+  line-height: 0.96;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.42);
 }
 
-:deep(.travel-venue-map-btn.v-btn) {
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  padding-inline: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.34);
+.travel-hero-copy {
+  margin: 0;
+  font-size: 14px;
+  max-width: 52ch;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-:deep(.travel-venue-map-btn.v-btn:hover) {
+:deep(.travel-hero-map-btn.v-btn) {
+  align-self: flex-start;
+  height: 42px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  padding-inline: 20px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.6);
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: rgba(var(--ink-rgb), 0.95) !important;
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+}
+
+:deep(.travel-hero-map-btn.v-btn:hover) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.34);
 }
 
-:deep(.travel-venue-map-btn .v-btn__overlay) {
-  opacity: 0.1;
+:deep(.travel-hero-map-btn .v-btn__overlay) {
+  opacity: 0.06;
 }
 
-.travel-note-stack {
-  margin-top: 12px;
+.travel-bottom {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.travel-side-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.travel-block {
+  border-radius: 16px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.4);
+  background: linear-gradient(
+    144deg,
+    rgba(var(--panel-surface-rgb), 0.92),
+    rgba(var(--panel-surface-rgb), 0.78)
+  );
+  box-shadow: 0 12px 22px rgba(var(--ink-rgb), 0.08);
+  padding: 12px;
 }
 
 .travel-note-card {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 10px;
-  align-items: baseline;
+  align-items: start;
   border-radius: 12px;
-  border: 1px solid rgba(var(--panel-border-rgb), 0.36);
-  background: rgba(var(--panel-surface-strong-rgb), 0.8);
+  border: 1px solid rgba(var(--panel-border-rgb), 0.34);
+  background: rgba(var(--panel-surface-strong-rgb), 0.76);
   padding: 10px 12px;
 }
 
 .travel-note-index {
   font-family: var(--font-title);
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1;
   color: rgba(var(--ink-muted-rgb), 0.74);
 }
 
@@ -311,8 +399,9 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.travel-block + .travel-block {
-  margin-top: 14px;
+.travel-note-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .travel-hotel-grid {
@@ -323,7 +412,7 @@ onBeforeUnmount(() => {
 .travel-hotel-card {
   border-radius: 14px;
   border: 1px solid rgba(var(--panel-border-rgb), 0.4);
-  background: rgba(var(--panel-surface-strong-rgb), 0.82);
+  background: rgba(var(--panel-surface-strong-rgb), 0.84);
   padding: 12px;
   box-shadow: 0 12px 24px rgba(var(--ink-rgb), 0.08);
 }
@@ -383,6 +472,12 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
+@media (max-width: 1080px) {
+  .travel-bottom {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .travel-decor-art--top {
     top: -120px;
@@ -396,8 +491,27 @@ onBeforeUnmount(() => {
     width: min(520px, 108vw);
   }
 
-  .travel-venue-title {
+  .travel-content {
+    gap: 12px;
+  }
+
+  .travel-hero-title {
     font-size: clamp(20px, 6vw, 26px);
+  }
+
+  :deep(.travel-hero-map-btn.v-btn) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .travel-block {
+    padding: 10px;
+  }
+
+  .travel-hotel-name {
+    font-size: 20px;
   }
 }
 </style>
