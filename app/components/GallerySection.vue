@@ -79,16 +79,14 @@
           </button>
 
           <div class="gallery-lightbox-image-wrap">
-            <NuxtImg
+            <v-img
               v-if="activePhoto"
               :src="encodedPhotoUrl(activePhoto.url)"
               :alt="photoLabel(galleryIndex)"
               class="gallery-lightbox-image"
-              sizes="100vw"
-              loading="eager"
-              decoding="async"
-              fit="inside"
-              :quality="86"
+              height="min(70vh, 780px)"
+              contain
+              eager
             />
           </div>
 
@@ -159,7 +157,7 @@ const activePhoto = computed(() => photos.value[galleryIndex.value] ?? null)
 const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
 
 function tileClass(index: number): string {
-  return tilePattern[index % tilePattern.length]
+  return tilePattern[index % tilePattern.length] ?? 'gallery-tile--small'
 }
 
 function formatPhotoLabel(url: string, index: number): string {
@@ -473,6 +471,9 @@ onBeforeUnmount(() => {
 .gallery-lightbox-image {
   width: 100%;
   height: min(70vh, 780px);
+}
+
+.gallery-lightbox-image :deep(.v-img__img) {
   object-fit: contain;
 }
 
