@@ -83,4 +83,28 @@ onUnmounted(() => clearInterval(interval))
   letter-spacing: 0.08em;
   color: rgba(var(--ink-muted-rgb), 0.68);
 }
+
+@media (max-width: 560px) {
+  .countdown-shell {
+    padding: 12px;
+  }
+
+  .countdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .countdown-cell {
+    padding: 10px 6px;
+  }
+
+  .countdown-value {
+    font-size: 18px;
+  }
+
+  .countdown-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+}
 </style>

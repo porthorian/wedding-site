@@ -88,7 +88,6 @@ const rootRef = ref<HTMLElement | null>(null)
 const weddingDate = new Date(wedding.dateISO)
 const firstScheduleItem = computed(() => wedding.schedule[0])
 const lastScheduleItem = computed(() => wedding.schedule[wedding.schedule.length - 1])
-const totalMoments = computed(() => wedding.schedule.length)
 const startTimeLabel = computed(() =>
   firstScheduleItem.value?.time ? `Starts ${firstScheduleItem.value.time}` : wedding.hero.timeDisplay
 )
@@ -195,11 +194,15 @@ onBeforeUnmount(() => {
   align-items: center;
   border-radius: 999px;
   padding: 7px 12px;
-  border: 1px solid rgba(var(--panel-border-rgb), 0.34);
-  background: rgba(var(--panel-surface-rgb), 0.8);
+  border: 1px solid rgba(var(--panel-border-rgb), 0.52);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--panel-surface-rgb), 0.96),
+    rgba(var(--panel-surface-rgb), 0.84)
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 8px 14px rgba(var(--ink-rgb), 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 10px 18px rgba(var(--ink-rgb), 0.12);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -211,6 +214,13 @@ onBeforeUnmount(() => {
   max-width: min(340px, 100%);
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+:deep(.runshow-pill--location .v-btn__content) {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .runshow-board {
@@ -447,6 +457,20 @@ onBeforeUnmount(() => {
     gap: 14px;
   }
 
+  .runshow-meta {
+    gap: 6px;
+  }
+
+  .runshow-pill {
+    padding: 7px 10px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .runshow-board {
+    gap: 12px;
+  }
+
   .runshow-side {
     grid-template-columns: 1fr;
   }
@@ -468,12 +492,54 @@ onBeforeUnmount(() => {
   }
 
   .runshow-step-title {
-    font-size: clamp(26px, 8.5vw, 32px);
+    font-size: clamp(22px, 8vw, 28px);
   }
 
   .runshow-step-dot {
     width: 13px;
     height: 13px;
+  }
+
+  .runshow-step-card {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .runshow-meta {
+    width: 100%;
+  }
+
+  .runshow-pill {
+    max-width: 100%;
+  }
+
+  .runshow-track {
+    padding-left: 6px;
+  }
+
+  .runshow-track::before {
+    left: 14px;
+  }
+
+  .runshow-step {
+    gap: 8px;
+  }
+
+  .runshow-step-dot {
+    margin-top: 16px;
+    box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.12);
+  }
+
+  .runshow-step-index {
+    min-width: 30px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .runshow-step-time {
+    padding: 4px 8px;
+    font-size: 10px;
   }
 }
 </style>

@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
 .registry-store-title {
   margin: 10px 0 0;
   font-family: var(--font-title);
-  font-size: clamp(34px, 3.2vw, 42px);
+  font-size: clamp(30px, 2.9vw, 40px);
   line-height: 0.92;
   color: var(--paper-ink);
 }
@@ -389,12 +389,31 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 960px) {
+  .registry-content {
+    gap: 12px;
+  }
+
+  .registry-header {
+    gap: 10px;
+  }
+
+  .registry-how {
+    padding: 12px 14px;
+  }
+
+  .registry-meta-pill {
+    padding: 7px 10px;
+    font-size: 10px;
+    letter-spacing: 0.07em;
+  }
+
   .registry-store-card {
     padding: 16px;
   }
 
   .registry-store-title {
-    font-size: clamp(30px, 9vw, 38px);
+    font-size: clamp(26px, 8vw, 34px);
+    line-height: 0.96;
   }
 
   .registry-meta {
@@ -403,6 +422,31 @@ onBeforeUnmount(() => {
 
   .registry-meta-pill {
     white-space: normal;
+  }
+}
+
+@media (max-width: 600px) {
+  .registry-store-topline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .registry-highlight-list {
+    gap: 6px;
+  }
+
+  .registry-highlight-item {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .registry-store-actions {
+    padding-top: 12px;
+  }
+
+  .registry-store-note {
+    font-size: 10px;
   }
 }
 </style>

@@ -75,7 +75,7 @@
 
         <div class="gallery-lightbox-main">
           <v-btn
-            class="gallery-nav-btn"
+            class="gallery-nav-btn gallery-nav-btn--prev"
             aria-label="Previous photo"
             variant="outlined"
             icon
@@ -86,21 +86,24 @@
 
           <div class="gallery-lightbox-image-wrap">
             <Transition name="gallery-lightbox-fade" mode="out-in">
-              <img
+              <NuxtImg
                 v-if="activePhotoSrc"
                 :key="activePhotoSrc"
                 :src="activePhotoSrc"
                 :alt="photoLabel(galleryIndex)"
                 class="gallery-lightbox-image"
+                sizes="(max-width: 960px) 92vw, 78vw"
                 loading="eager"
                 decoding="async"
                 fetchpriority="high"
+                fit="contain"
+                :quality="84"
               />
             </Transition>
           </div>
 
           <v-btn
-            class="gallery-nav-btn"
+            class="gallery-nav-btn gallery-nav-btn--next"
             aria-label="Next photo"
             variant="outlined"
             icon
@@ -568,6 +571,9 @@ onBeforeUnmount(() => {
   background: rgb(var(--v-theme-surface));
   border-radius: 14px;
   overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(94dvh, 980px);
 }
 
 .gallery-lightbox-topbar {
@@ -591,12 +597,13 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 10px;
+  min-height: 0;
 }
 
 .gallery-lightbox-image-wrap {
   position: relative;
   min-width: 0;
-  height: min(70vh, 780px);
+  height: 100%;
   min-height: min(70vh, 780px);
   max-height: min(70vh, 780px);
   display: grid;
@@ -606,7 +613,8 @@ onBeforeUnmount(() => {
 
 .gallery-lightbox-image {
   width: 100%;
-  height: min(70vh, 780px);
+  height: 100%;
+  max-height: min(70vh, 780px);
   object-fit: contain;
   display: block;
   will-change: opacity;
@@ -691,24 +699,107 @@ onBeforeUnmount(() => {
 
   .gallery-mosaic {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 110px;
+    grid-auto-rows: 96px;
+    gap: 8px;
   }
 
-  .gallery-tile--hero,
-  .gallery-tile--wide,
-  .gallery-tile--tall,
+  .gallery-tile--hero {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .gallery-tile--wide {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .gallery-tile--tall {
+    grid-column: span 1;
+    grid-row: span 2;
+  }
+
   .gallery-tile--small {
     grid-column: span 1;
     grid-row: span 1;
   }
 
   .gallery-lightbox-main {
+    position: relative;
     grid-template-columns: 1fr;
-    gap: 10px;
+    padding: 8px 10px 0;
   }
 
-  .gallery-nav-btn {
-    display: none;
+  .gallery-lightbox-shell {
+    border-radius: 0;
+    min-height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .gallery-lightbox-image-wrap {
+    min-height: clamp(320px, 56dvh, 620px);
+    max-height: none;
+  }
+
+  .gallery-lightbox-image {
+    max-height: 100%;
+  }
+
+  :deep(.gallery-nav-btn.v-btn) {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    min-width: 38px;
+    width: 38px;
+    height: 38px;
+    background: rgba(var(--panel-surface-rgb), 0.9);
+    border-color: rgba(var(--panel-border-rgb), 0.46);
+    box-shadow: 0 8px 16px rgba(var(--ink-rgb), 0.22);
+    backdrop-filter: blur(2px);
+  }
+
+  :deep(.gallery-nav-btn--prev.v-btn) {
+    left: 16px;
+  }
+
+  :deep(.gallery-nav-btn--next.v-btn) {
+    right: 16px;
+  }
+
+  .gallery-nav-glyph {
+    font-size: 28px;
+  }
+
+  .gallery-filmstrip {
+    border-top: 1px solid rgba(var(--panel-border-rgb), 0.24);
+    padding: 8px 10px 10px;
+    background: rgba(var(--panel-surface-rgb), 0.92);
+  }
+}
+
+@media (max-width: 560px) {
+  .gallery-lightbox-topbar {
+    padding: 8px;
+  }
+
+  .gallery-lightbox-image-wrap {
+    min-height: clamp(280px, 50dvh, 520px);
+  }
+
+  :deep(.gallery-nav-btn--prev.v-btn) {
+    left: 10px;
+  }
+
+  :deep(.gallery-nav-btn--next.v-btn) {
+    right: 10px;
+  }
+
+  .gallery-thumb {
+    flex-basis: 78px;
+  }
+
+  .gallery-thumb-image {
+    height: 60px;
   }
 }
 </style>

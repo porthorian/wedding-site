@@ -287,8 +287,8 @@ onBeforeUnmount(() => {
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  background: linear-gradient(180deg, rgba(18, 18, 18, 0.82), rgba(18, 18, 18, 0.62));
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.88), rgba(18, 18, 18, 0.68));
   color: rgba(255, 255, 255, 0.96);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 999px;
-  border: 1px solid rgba(var(--panel-border-rgb), 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 240, 240, 0.9));
   color: rgba(var(--ink-rgb), 0.95);
   box-shadow:
@@ -505,6 +505,43 @@ onBeforeUnmount(() => {
   }
 }
 
+@media (max-width: 760px) {
+  .travel-hero {
+    min-height: clamp(280px, 54vw, 340px);
+  }
+
+  .travel-hero-image {
+    height: clamp(280px, 54vw, 340px);
+  }
+
+  .travel-hero-overlay {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .travel-hero-meta {
+    gap: 8px;
+  }
+
+  .travel-hero-kicker,
+  .travel-hero-date {
+    min-height: 28px;
+    padding: 5px 10px;
+    font-size: 10px;
+    letter-spacing: 0.09em;
+  }
+
+  .travel-hero-copy {
+    font-size: 13px;
+  }
+
+  .travel-note-card,
+  .travel-airport-item,
+  .travel-hotel-card {
+    padding: 10px;
+  }
+}
+
 @media (max-width: 600px) {
   .travel-block {
     padding: 10px;
@@ -512,6 +549,16 @@ onBeforeUnmount(() => {
 
   .travel-hotel-name {
     font-size: 20px;
+  }
+
+  .travel-hero-kicker,
+  .travel-hero-date {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .travel-hotel-actions :deep(.v-btn) {
+    flex: 1 1 calc(50% - 4px);
   }
 }
 </style>

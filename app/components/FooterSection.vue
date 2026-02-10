@@ -6,7 +6,7 @@
     <div class="site-footer-content">
       <p class="site-footer-script display-script">Rosa &amp; Vincent</p>
       <p class="site-footer-note muted">See you on the dance floor.</p>
-      <Vine2Divider class="mt-0 mb-0" style="height:40px;"/>
+      <Vine2Divider class="site-footer-vine" />
       <p class="site-footer-copyright">&copy; Vinnie Marone</p>
     </div>
   </footer>
@@ -163,6 +163,7 @@ onBeforeUnmount(() => {
   width: min(760px, 100%);
   margin-inline: auto;
   padding: clamp(14px, 2vw, 24px);
+  padding-bottom: max(clamp(14px, 2vw, 24px), env(safe-area-inset-bottom));
   display: grid;
   align-content: center;
   justify-items: center;
@@ -191,29 +192,10 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.site-footer-divider {
-  width: min(180px, 48%);
-  height: 1px;
-  margin-top: 2px;
-  background: linear-gradient(
-    90deg,
-    rgba(var(--panel-border-rgb), 0) 0%,
-    rgba(var(--panel-border-rgb), 0.48) 50%,
-    rgba(var(--panel-border-rgb), 0) 100%
-  );
-  animation: footer-divider-breathe 4.5s ease-in-out infinite;
-}
-
-@keyframes footer-divider-breathe {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: scaleX(0.95);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scaleX(1.03);
-  }
+.site-footer-vine {
+  width: min(260px, 68%);
+  height: 38px;
+  opacity: 0.74;
 }
 
 .site-footer-copyright {
@@ -231,7 +213,8 @@ onBeforeUnmount(() => {
 
   .site-footer-content {
     min-height: clamp(170px, 28svh, 220px);
-    gap: 5px;
+    gap: 4px;
+    padding-inline: 12px;
   }
 
   .site-footer-art {
@@ -243,6 +226,16 @@ onBeforeUnmount(() => {
 
   .site-footer-script {
     font-size: clamp(34px, 11.2vw, 54px);
+    line-height: 0.88;
+  }
+
+  .site-footer-vine {
+    height: 32px;
+    width: min(220px, 74%);
+  }
+
+  .site-footer-copyright {
+    letter-spacing: 0.08em;
   }
 }
 </style>
