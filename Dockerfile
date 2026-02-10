@@ -1,4 +1,4 @@
-FROM node:25.4-alpine AS builder
+FROM node:25.6-alpine AS builder
 WORKDIR /app
 
 # Use Corepack to ensure yarn is available in CI-friendly Node images
@@ -18,7 +18,7 @@ COPY . .
 RUN yarn build || (echo "BUILD FAILED - dumping yarn build.log(s) if present" && \
  for f in /tmp/xfs-*/*/build.log /tmp/xfs-*/build.log; do [ -f "$f" ] && (echo "--- $f ---" && sed -n '1,200p' "$f"); done; false)
 
-FROM node:25.4-alpine AS runner
+FROM node:25.6-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
