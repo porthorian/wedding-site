@@ -105,7 +105,12 @@ const lazyActive = reactive({
 })
 
 const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
-const scrollableSectionIds = new Set<string>(['hero', ...lazySectionIds])
+const sectionIdsInOrder = ['hero', 'schedule', 'travel', 'registry', 'gallery', 'footer'] as const
+const scrollableSectionIds = new Set<string>(sectionIdsInOrder)
+let scrollHashSyncRaf: number | null = null
+let suppressScrollHashSync = false
+let suppressScrollHashSyncTimer: number | null = null
+let previousScrollRestoration: ScrollRestoration | null = null
 
 function activateAllLazySections() {
   for (const id of lazySectionIds) lazyActive[id] = true
@@ -122,39 +127,179 @@ function isScrollableSection(id: string): boolean {
   return scrollableSectionIds.has(id)
 }
 
+function getMountedSections(): HTMLElement[] {
+  return sectionIdsInOrder
+    .map((id) => document.getElementById(id))
+    .filter((node): node is HTMLElement => Boolean(node))
+}
+
+function getUrlWithoutHash(): string {
+  return `${window.location.pathname}${window.location.search}`
+}
+
+function getDocumentScrollElement(): HTMLElement {
+  return (document.scrollingElement as HTMLElement) || document.documentElement
+}
+
+function getEffectiveScrollContainer(): HTMLElement {
+  const pageShell = pageShellRef.value
+  if (pageShell && pageShell.scrollHeight - pageShell.clientHeight > 2) return pageShell
+  return getDocumentScrollElement()
+}
+
+function suppressHashSyncFor(durationMs: number) {
+  suppressScrollHashSync = true
+  if (suppressScrollHashSyncTimer !== null) {
+    window.clearTimeout(suppressScrollHashSyncTimer)
+  }
+  suppressScrollHashSyncTimer = window.setTimeout(() => {
+    suppressScrollHashSync = false
+    suppressScrollHashSyncTimer = null
+  }, durationMs)
+}
+
+async function waitForLayout(frames = 1) {
+  for (let index = 0; index < frames; index += 1) {
+    await nextTick()
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  }
+}
+
+function computeTargetScrollTop(container: HTMLElement, target: HTMLElement): number {
+  const containerRect = container.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  return Math.max(0, container.scrollTop + (targetRect.top - containerRect.top))
+}
+
+function getCurrentSectionIdFromScroll(): string | null {
+  const sections = getMountedSections()
+  if (!sections.length) return null
+
+  const activationLine = Math.min(window.innerHeight * 0.36, 280)
+  let currentId = sections[0]?.id ?? null
+
+  for (const section of sections) {
+    if (section.getBoundingClientRect().top <= activationLine) currentId = section.id
+    else break
+  }
+
+  return currentId
+}
+
+function syncHashToCurrentSection() {
+  if (suppressScrollHashSync) return
+
+  const currentSectionId = getCurrentSectionIdFromScroll()
+  if (!currentSectionId) return
+
+  if (currentSectionId === 'hero') {
+    if (window.location.hash) history.replaceState(null, '', getUrlWithoutHash())
+    return
+  }
+
+  const nextHash = `#${currentSectionId}`
+  if (window.location.hash === nextHash) return
+
+  history.replaceState(null, '', nextHash)
+}
+
+function onPageShellScroll() {
+  if (scrollHashSyncRaf !== null) return
+  scrollHashSyncRaf = window.requestAnimationFrame(() => {
+    scrollHashSyncRaf = null
+    syncHashToCurrentSection()
+  })
+}
+
 async function scrollToSectionId(
   id: string,
   opts?: { replaceHash?: boolean, behavior?: ScrollBehavior, updateHash?: boolean }
 ) {
   const normalizedId = normalizeSectionId(id)
-  if (!normalizedId || !isScrollableSection(normalizedId)) return
+  if (!normalizedId || !isScrollableSection(normalizedId)) return false
 
   if (lazySectionIds.includes(normalizedId as keyof typeof lazyActive)) {
     activateAllLazySections()
   }
-  await nextTick()
-  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+  await waitForLayout(3)
 
   const target = document.getElementById(normalizedId)
-  if (!target) return
+  if (!target) return false
 
   const behavior = opts?.behavior
     ?? (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
 
+  suppressHashSyncFor(behavior === 'smooth' ? 700 : 180)
   target.scrollIntoView({ behavior, block: 'start' })
 
-  if (opts?.updateHash === false) return
+  // Reinforce to the active scroll container in case hash scrolling targeted the wrong scroller.
+  const scrollContainer = getEffectiveScrollContainer()
+  const targetTop = computeTargetScrollTop(scrollContainer, target)
+  scrollContainer.scrollTo({ top: targetTop, behavior })
+  if (behavior === 'auto') scrollContainer.scrollTop = targetTop
+
+  if (opts?.updateHash === false) return true
+
+  if (normalizedId === 'hero') {
+    if (window.location.hash) {
+      const nextUrl = getUrlWithoutHash()
+      if (opts?.replaceHash) history.replaceState(null, '', nextUrl)
+      else history.pushState(null, '', nextUrl)
+    }
+    return true
+  }
 
   const nextHash = `#${normalizedId}`
-  if (window.location.hash === nextHash) return
-
+  if (window.location.hash === nextHash) return true
   if (opts?.replaceHash) history.replaceState(null, '', nextHash)
   else history.pushState(null, '', nextHash)
+  return true
+}
+
+async function snapToInitialSection() {
+  const initialHash = normalizeSectionId(window.location.hash)
+  if (!initialHash || !isScrollableSection(initialHash) || initialHash === 'hero') {
+    const scrollContainer = getEffectiveScrollContainer()
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await waitForLayout(1)
+      scrollContainer.scrollTo({ top: 0, behavior: 'auto' })
+      scrollContainer.scrollTop = 0
+      if (scrollContainer.scrollTop <= 1) break
+    }
+    if (window.location.hash) history.replaceState(null, '', getUrlWithoutHash())
+    return
+  }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const scrolled = await scrollToSectionId(initialHash, {
+      replaceHash: true,
+      behavior: 'auto',
+      updateHash: false,
+    })
+    if (!scrolled) continue
+
+    const scrollContainer = getEffectiveScrollContainer()
+    const target = document.getElementById(initialHash)
+    if (!scrollContainer || !target) break
+
+    const expectedTop = computeTargetScrollTop(scrollContainer, target)
+    const isAligned = Math.abs(scrollContainer.scrollTop - expectedTop) <= 2
+    if (isAligned) break
+
+    await waitForLayout(1)
+  }
 }
 
 function onHashChange() {
   const hashSectionId = normalizeSectionId(window.location.hash)
-  if (!hashSectionId) return
+  if (!hashSectionId) {
+    void scrollToSectionId('hero', { updateHash: false, behavior: 'auto' })
+    return
+  }
+  if (hashSectionId === 'hero') {
+    void scrollToSectionId('hero', { updateHash: true, replaceHash: true, behavior: 'auto' })
+    return
+  }
   void scrollToSectionId(hashSectionId, { updateHash: false })
 }
 
@@ -197,17 +342,19 @@ function startHeroNameGlitterFallback() {
   })
 }
 
-onMounted(() => {
-  const initialHash = normalizeSectionId(window.location.hash)
-  if (initialHash && isScrollableSection(initialHash)) {
-    void scrollToSectionId(initialHash, {
-      replaceHash: true,
-      behavior: 'auto',
-      updateHash: false,
-    })
-  } else {
-    pageShellRef.value?.scrollTo({ top: 0, behavior: 'auto' })
+onMounted(async () => {
+  if ('scrollRestoration' in history) {
+    previousScrollRestoration = history.scrollRestoration
+    history.scrollRestoration = 'manual'
   }
+
+  await snapToInitialSection()
+  await waitForLayout(1)
+  syncHashToCurrentSection()
+
+  pageShellRef.value?.addEventListener('scroll', onPageShellScroll, { passive: true })
+  window.addEventListener('scroll', onPageShellScroll, { passive: true })
+  window.addEventListener('resize', onPageShellScroll, { passive: true })
   window.addEventListener('hashchange', onHashChange)
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -249,7 +396,23 @@ onBeforeUnmount(() => {
   heroAnimation?.pause()
   floatAnimation?.pause()
   heroNameGlitterFallbackAnimation?.pause()
+  if (scrollHashSyncRaf !== null) {
+    window.cancelAnimationFrame(scrollHashSyncRaf)
+    scrollHashSyncRaf = null
+  }
+  if (suppressScrollHashSyncTimer !== null) {
+    window.clearTimeout(suppressScrollHashSyncTimer)
+    suppressScrollHashSyncTimer = null
+  }
+  suppressScrollHashSync = false
+  pageShellRef.value?.removeEventListener('scroll', onPageShellScroll)
+  window.removeEventListener('scroll', onPageShellScroll)
+  window.removeEventListener('resize', onPageShellScroll)
   window.removeEventListener('hashchange', onHashChange)
+  if (previousScrollRestoration !== null && 'scrollRestoration' in history) {
+    history.scrollRestoration = previousScrollRestoration
+    previousScrollRestoration = null
+  }
   heroAnimation = null
   floatAnimation = null
   heroNameGlitterFallbackAnimation = null
