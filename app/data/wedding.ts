@@ -21,7 +21,7 @@ export const wedding = {
   ],
   travel: {
     airports: [
-      { code: 'EWR', name: 'Newark Liberty International Airport', note: 'Usually the quickest option to Eatontown (~45–60 min)' },
+      // { code: 'EWR', name: 'Newark Liberty International Airport', note: 'Usually the quickest option to Eatontown (~45–60 min)' },
     ],
     hotels: [
       { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD - Shuttle to Venue' },
@@ -66,23 +66,23 @@ export const wedding = {
   gallery: [
     { url: '/images/gallery/JoePalaiaEngagementSession133191.jpg' },
     { url: '/images/gallery/JoePalaiaEngagementSession133201.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134083.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134134.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134138.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134139.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134143.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134146.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134153.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134157.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134159.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134160.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134163.jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134166 (1).jpg' },
-    { url: '/images/gallery/JoePalaiaParkEngagementSession134188.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134146.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134193.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134157.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134160.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134166.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134163.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134083.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134188.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134217.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134218.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134228.jpg' },
+    { url: '/images/gallery/JoePalaiaParkEngagementSession134153.jpg' },
     { url: '/images/gallery/JoePalaiaParkEngagementSession134230.jpg' }
   ],
 }

@@ -87,7 +87,7 @@
           </section>
 
           <div class="travel-side-stack">
-            <section class="travel-block">
+            <section class="travel-block" v-if="airports.length >= 1">
               <div class="section-label">Airports</div>
               <div v-if="airports.length" class="travel-airport-list">
                 <article

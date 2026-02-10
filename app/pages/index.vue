@@ -1,5 +1,5 @@
 <template>
-  <section class="page-shell page-shell--snap paper-bg">
+  <section ref="pageShellRef" class="page-shell page-shell--snap paper-bg">
     <v-container class="page-sections">
       <section id="hero" class="landing-section landing-section--hero">
         <div class="hero-frame">
@@ -84,6 +84,7 @@ import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 import heroFrameSvg from '~/assets/svgs/810543_23257-NV0O8K.svg?raw'
 
+const pageShellRef = ref<HTMLElement | null>(null)
 const heroFrameRef = ref<HTMLElement | null>(null)
 const heroNameParts = computed(() => {
   const parts = wedding.names.split('&').map((part) => part.trim()).filter(Boolean)
@@ -104,27 +105,57 @@ const lazyActive = reactive({
 })
 
 const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
+const scrollableSectionIds = new Set<string>(['hero', ...lazySectionIds])
 
 function activateAllLazySections() {
   for (const id of lazySectionIds) lazyActive[id] = true
 }
 
-async function scrollToSectionId(id: string, opts?: { replaceHash?: boolean }) {
-  if (!id) return
+function normalizeSectionId(rawId: string): string {
+  return decodeURIComponent(rawId || '')
+    .trim()
+    .replace(/^#/, '')
+    .toLowerCase()
+}
 
-  activateAllLazySections()
+function isScrollableSection(id: string): boolean {
+  return scrollableSectionIds.has(id)
+}
+
+async function scrollToSectionId(
+  id: string,
+  opts?: { replaceHash?: boolean, behavior?: ScrollBehavior, updateHash?: boolean }
+) {
+  const normalizedId = normalizeSectionId(id)
+  if (!normalizedId || !isScrollableSection(normalizedId)) return
+
+  if (lazySectionIds.includes(normalizedId as keyof typeof lazyActive)) {
+    activateAllLazySections()
+  }
   await nextTick()
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 
-  const target = document.getElementById(id)
+  const target = document.getElementById(normalizedId)
   if (!target) return
 
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
+  const behavior = opts?.behavior
+    ?? (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
 
-  const nextHash = `#${id}`
+  target.scrollIntoView({ behavior, block: 'start' })
+
+  if (opts?.updateHash === false) return
+
+  const nextHash = `#${normalizedId}`
+  if (window.location.hash === nextHash) return
+
   if (opts?.replaceHash) history.replaceState(null, '', nextHash)
   else history.pushState(null, '', nextHash)
+}
+
+function onHashChange() {
+  const hashSectionId = normalizeSectionId(window.location.hash)
+  if (!hashSectionId) return
+  void scrollToSectionId(hashSectionId, { updateHash: false })
 }
 
 let heroAnimation: anime.JSAnimation | null = null
@@ -167,10 +198,17 @@ function startHeroNameGlitterFallback() {
 }
 
 onMounted(() => {
-  const initialHash = window.location.hash?.slice(1)
-  if (initialHash && lazySectionIds.includes(initialHash as keyof typeof lazyActive)) {
-    void scrollToSectionId(initialHash, { replaceHash: true })
+  const initialHash = normalizeSectionId(window.location.hash)
+  if (initialHash && isScrollableSection(initialHash)) {
+    void scrollToSectionId(initialHash, {
+      replaceHash: true,
+      behavior: 'auto',
+      updateHash: false,
+    })
+  } else {
+    pageShellRef.value?.scrollTo({ top: 0, behavior: 'auto' })
   }
+  window.addEventListener('hashchange', onHashChange)
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (!prefersReducedMotion) startHeroNameGlitterFallback()
@@ -211,6 +249,7 @@ onBeforeUnmount(() => {
   heroAnimation?.pause()
   floatAnimation?.pause()
   heroNameGlitterFallbackAnimation?.pause()
+  window.removeEventListener('hashchange', onHashChange)
   heroAnimation = null
   floatAnimation = null
   heroNameGlitterFallbackAnimation = null

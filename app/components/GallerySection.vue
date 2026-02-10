@@ -42,7 +42,6 @@
               :fetchpriority="index === 0 ? 'high' : 'auto'"
               decoding="async"
               fit="cover"
-              format="webp"
               :quality="78"
             />
             <span v-if="index === 0" class="gallery-tile-feature">Featured</span>
@@ -89,7 +88,6 @@
               loading="eager"
               decoding="async"
               fit="inside"
-              format="webp"
               :quality="86"
             />
           </div>
@@ -119,7 +117,6 @@
               loading="lazy"
               decoding="async"
               fit="cover"
-              format="webp"
               :quality="68"
             />
           </button>
@@ -156,7 +153,7 @@ const tilePattern = [
 
 const photos = computed(() => wedding.gallery ?? [])
 const totalPhotos = computed(() => photos.value.length)
-const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(8, photos.value.length)))
+const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(9, photos.value.length)))
 const hiddenPhotoCount = computed(() => Math.max(0, totalPhotos.value - mosaicPhotos.value.length))
 const activePhoto = computed(() => photos.value[galleryIndex.value] ?? null)
 const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
