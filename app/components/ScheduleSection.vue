@@ -11,27 +11,15 @@
               A smooth guide from ceremony through the last dance.
             </p>
           </div>
-
-          <div class="runshow-meta" role="list" aria-label="Schedule details">
-            <span class="runshow-pill" role="listitem">{{ wedding.hero.dateDisplay }}</span>
-            <span class="runshow-pill" role="listitem">{{ startTimeLabel }}</span>
-            <v-btn
-              class="runshow-pill runshow-pill--location"
-              role="listitem"
-              variant="tonal"
-              color="primary"
-              size="small"
-              :href="venueMapUrl"
-              target="_blank"
-              rel="noopener"
-            >
-              {{ locationLabel }}
-            </v-btn>
-          </div>
         </header>
 
         <div class="runshow-board">
           <aside class="runshow-side">
+            <div class="runshow-date-card" aria-label="Wedding date">
+              <span class="runshow-date-label">Wedding Date</span>
+              <span class="runshow-date-value">{{ weddingDayLabel }}</span>
+            </div>
+
             <div class="runshow-countdown-card">
               <div class="runshow-countdown-head">
                 <div class="section-label runshow-countdown-label">Countdown</div>
@@ -43,13 +31,26 @@
             <div class="runshow-facts">
               <div class="runshow-fact">
                 <span class="runshow-fact-label">Starts</span>
-                <span class="runshow-fact-value">{{ firstScheduleItem?.time ?? wedding.hero.timeDisplay }}</span>
+                <span class="runshow-fact-value">{{ wedding.hero.startsTime }}</span>
               </div>
               <div class="runshow-fact">
                 <span class="runshow-fact-label">Ends</span>
-                <span class="runshow-fact-value">{{ lastScheduleItem?.time ?? '--:--' }}</span>
+                <span class="runshow-fact-value">{{ wedding.hero.endsTime }}</span>
               </div>
             </div>
+
+            <button
+              type="button"
+              class="runshow-travel-cta"
+              @click="scrollToTravelSection"
+            >
+              <span class="runshow-travel-cta-kicker">Travel &amp; Stay</span>
+              <span class="runshow-travel-cta-title">Need Travel or Hotel Details?</span>
+              <span class="runshow-travel-cta-copy">
+                Jump to travel planning for maps, hotel info, and getting-around notes.
+              </span>
+              <span class="runshow-travel-cta-action">View Travel Section</span>
+            </button>
           </aside>
 
           <div class="runshow-track" role="list" aria-label="Wedding day schedule">
@@ -84,19 +85,60 @@ import { wedding } from '~/data/wedding'
 const venueMapUrl = computed(
   () => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.location)}`
 )
+const churchMapUrl = computed(
+  () =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.churchLocation)}`
+)
 const rootRef = ref<HTMLElement | null>(null)
 const weddingDate = new Date(wedding.dateISO)
-const firstScheduleItem = computed(() => wedding.schedule[0])
-const lastScheduleItem = computed(() => wedding.schedule[wedding.schedule.length - 1])
+const weddingDayLabel = computed(() => {
+  const date = new Date(wedding.dateISO)
+  if (Number.isNaN(date.getTime())) return 'August 7th'
+
+  const month = date.toLocaleDateString('en-US', { month: 'long' })
+  return `${month} ${toOrdinalDay(date.getDate())}`
+})
 const startTimeLabel = computed(() =>
-  firstScheduleItem.value?.time ? `Starts ${firstScheduleItem.value.time}` : wedding.hero.timeDisplay
+  `Starts ${wedding.hero.startsTime}`
+)
+const endTimeLabel = computed(() =>
+  `Ends ${wedding.hero.endsTime}`
 )
 const locationLabel = computed(() => {
   const parts = wedding.location.split(',').map((part) => part.trim()).filter(Boolean)
   if (parts.length >= 2) return `${parts[0]}, ${parts[1]}`
   return wedding.location
 })
+const churchLocationLabel = computed(() => {
+  const parts = wedding.churchLocation.split(',').map((part) => part.trim()).filter(Boolean)
+  if (parts.length >= 2) return `${parts[0]}, ${parts[1]}`
+  return wedding.churchLocation
+})
 let introAnimation: anime.JSAnimation | null = null
+
+function toOrdinalDay(day: number): string {
+  const moduloTen = day % 10
+  const moduloHundred = day % 100
+  if (moduloTen === 1 && moduloHundred !== 11) return `${day}st`
+  if (moduloTen === 2 && moduloHundred !== 12) return `${day}nd`
+  if (moduloTen === 3 && moduloHundred !== 13) return `${day}rd`
+  return `${day}th`
+}
+
+function scrollToTravelSection() {
+  const target = document.getElementById('travel')
+  if (!target) return
+
+  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 'auto'
+    : 'smooth'
+
+  target.scrollIntoView({ behavior, block: 'start' })
+
+  if (window.location.hash !== '#travel') {
+    history.pushState(null, '', '#travel')
+  }
+}
 
 function startIntroAnimation() {
   if (introAnimation) return
@@ -183,44 +225,50 @@ onBeforeUnmount(() => {
 }
 
 .runshow-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  max-width: min(560px, 100%);
+}
+
+.runshow-meta-line {
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-}
-
-.runshow-pill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 7px 12px;
-  border: 1px solid rgba(var(--panel-border-rgb), 0.52);
-  background: linear-gradient(
-    180deg,
-    rgba(var(--panel-surface-rgb), 0.96),
-    rgba(var(--panel-surface-rgb), 0.84)
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 10px 18px rgba(var(--ink-rgb), 0.12);
+  gap: 4px 10px;
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(var(--ink-rgb), 0.88);
-  white-space: nowrap;
+  color: rgba(var(--ink-muted-rgb), 0.78);
 }
 
-.runshow-pill--location {
-  max-width: min(340px, 100%);
-  text-overflow: ellipsis;
-  overflow: hidden;
+.runshow-meta-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 14px;
 }
 
-:deep(.runshow-pill--location .v-btn__content) {
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.runshow-meta-link {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: rgba(var(--ink-rgb), 0.84);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(var(--panel-border-rgb), 0.62);
+  transition: color 180ms ease, border-color 180ms ease;
+}
+
+.runshow-meta-link:hover {
+  color: rgba(var(--v-theme-primary), 0.98);
+  border-color: rgba(var(--v-theme-primary), 0.56);
+}
+
+.runshow-meta-link:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.36);
+  outline-offset: 2px;
+  color: rgba(var(--v-theme-primary), 0.98);
+  border-color: rgba(var(--v-theme-primary), 0.56);
 }
 
 .runshow-board {
@@ -233,6 +281,31 @@ onBeforeUnmount(() => {
 .runshow-side {
   display: grid;
   gap: 12px;
+}
+
+.runshow-date-card {
+  display: grid;
+  gap: 3px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.4);
+  background:
+    radial-gradient(circle at 88% 20%, rgba(var(--sage-rgb), 0.16), transparent 42%),
+    rgba(var(--panel-surface-rgb), 0.76);
+  padding: 10px 12px;
+}
+
+.runshow-date-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(var(--ink-muted-rgb), 0.76);
+}
+
+.runshow-date-value {
+  font-family: var(--font-title);
+  font-size: clamp(30px, 2.3vw, 36px);
+  line-height: 0.9;
+  color: var(--paper-ink);
 }
 
 .runshow-countdown-card {
@@ -315,6 +388,81 @@ onBeforeUnmount(() => {
   font-size: 20px;
   line-height: 1;
   color: var(--paper-ink);
+}
+
+.runshow-travel-cta {
+  appearance: none;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.46);
+  background:
+    radial-gradient(circle at 9% 85%, rgba(var(--blush-rgb), 0.2), transparent 52%),
+    radial-gradient(circle at 88% 14%, rgba(var(--sage-rgb), 0.18), transparent 44%),
+    rgba(var(--panel-surface-rgb), 0.8);
+  box-shadow: 0 12px 22px rgba(var(--ink-rgb), 0.1);
+  border-radius: 14px;
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 12px;
+  cursor: pointer;
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.runshow-travel-cta:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--v-theme-primary), 0.38);
+  box-shadow: 0 16px 26px rgba(var(--ink-rgb), 0.12);
+}
+
+.runshow-travel-cta:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.36);
+  outline-offset: 2px;
+}
+
+.runshow-travel-cta-kicker {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(var(--ink-muted-rgb), 0.76);
+}
+
+.runshow-travel-cta-title {
+  font-family: var(--font-title);
+  font-size: clamp(25px, 1.95vw, 30px);
+  line-height: 0.92;
+  color: var(--paper-ink);
+}
+
+.runshow-travel-cta-copy {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: rgba(var(--ink-muted-rgb), 0.82);
+}
+
+.runshow-travel-cta-action {
+  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.28);
+  background: rgba(var(--v-theme-primary), 0.12);
+  padding: 5px 10px;
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(var(--ink-rgb), 0.9);
+}
+
+.runshow-travel-cta-action::after {
+  content: '->';
+  transition: transform 180ms ease;
+}
+
+.runshow-travel-cta:hover .runshow-travel-cta-action::after,
+.runshow-travel-cta:focus-visible .runshow-travel-cta-action::after {
+  transform: translateX(2px);
 }
 
 .runshow-track {
@@ -428,11 +576,16 @@ onBeforeUnmount(() => {
   }
 
   .runshow-meta {
+    justify-items: flex-start;
+    max-width: 100%;
+  }
+
+  .runshow-meta-line {
     justify-content: flex-start;
   }
 
-  .runshow-pill--location {
-    max-width: 100%;
+  .runshow-meta-links {
+    justify-content: flex-start;
   }
 
   .runshow-board {
@@ -443,12 +596,17 @@ onBeforeUnmount(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .runshow-date-card,
   .runshow-countdown-card {
     grid-column: 1 / -1;
   }
 
+  .runshow-travel-cta {
+    grid-column: 1 / -1;
+  }
+
   .runshow-facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -461,10 +619,17 @@ onBeforeUnmount(() => {
     gap: 6px;
   }
 
-  .runshow-pill {
-    padding: 7px 10px;
+  .runshow-meta-line {
     font-size: 10px;
-    letter-spacing: 0.08em;
+    gap: 4px 8px;
+  }
+
+  .runshow-meta-links {
+    gap: 4px 10px;
+  }
+
+  .runshow-meta-link {
+    font-size: 11px;
   }
 
   .runshow-board {
@@ -475,8 +640,20 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
+  .runshow-date-value {
+    font-size: clamp(24px, 7vw, 30px);
+  }
+
   .runshow-facts {
     grid-template-columns: 1fr;
+  }
+
+  .runshow-travel-cta-title {
+    font-size: clamp(21px, 7vw, 26px);
+  }
+
+  .runshow-travel-cta-copy {
+    font-size: 11px;
   }
 
   .runshow-countdown-card :deep(.countdown-grid) {
@@ -510,8 +687,18 @@ onBeforeUnmount(() => {
     width: 100%;
   }
 
-  .runshow-pill {
-    max-width: 100%;
+  .runshow-meta-links {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+  }
+
+  .runshow-date-card {
+    padding: 9px 10px;
+  }
+
+  .runshow-travel-cta {
+    padding: 10px;
   }
 
   .runshow-track {

@@ -28,11 +28,11 @@
           />
           <div class="travel-hero-overlay">
             <div class="travel-hero-meta">
-              <span class="travel-hero-kicker">Wedding Weekend Venue</span>
+              <span class="travel-hero-kicker">Wedding Venue</span>
               <span class="travel-hero-date">{{ wedding.hero.dateDisplay }}</span>
             </div>
             <h3 class="travel-hero-title">{{ wedding.location }}</h3>
-            <p class="travel-hero-copy">Ceremony and reception destination for the weekend.</p>
+            <p class="travel-hero-copy">Reception destination for the day.</p>
             <v-btn
               :href="venueMapUrl"
               target="_blank"

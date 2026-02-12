@@ -2,22 +2,18 @@ export const wedding = {
   names: 'Rosa & Vincent',
   dateISO: '2026-08-07T16:30:00-04:00',
   location: 'The TillingHouse, Eatontown, NJ',
+  churchLocation: 'St. Mary of the Assumption Roman Catholic Church, Deal, NJ',
   hero: {
     dateDisplay: 'August 7, 2026',
-    timeDisplay: '3:00 PM',
-    tagline: '',
-    ctas: [
-      { label: 'Registry', href: '#registry' },
-      { label: 'View Schedule', href: '#schedule' },
-      { label: 'Travel', href: '#travel' },
-    ],
+    startsTime: '3:00 PM',
+    endsTime: '11:00 PM',
   },
   schedule: [
-    { time: '3:00 PM', title: 'Ceremony', detail: 'Arrive by 2:45 PM @ Saint Mary\'s Church in Deal, NJ' },
+    { time: '2:45 PM', title: 'Guests Arrive', detail: 'St. Mary of the Assumption Roman Catholic Church in Deal, NJ' },
+    { time: '3:00 PM', title: 'Ceremony', detail: "" },
     { time: "4:00 PM", title: 'Limbo', detail: 'TBD' },
-    { time: '6:00 PM', title: 'Cocktail Hour', detail: 'Drinks + bites' },
+    { time: '6:00 PM', title: 'Cocktail Hour', detail: 'Drinks + bites @ The TillingHouse' },
     { time: '7:00 PM', title: 'Reception', detail: 'Dinner + dancing' },
-    { time: '11:00 PM', title: 'End of Night?', detail: 'TBD' },
   ],
   travel: {
     airports: [
