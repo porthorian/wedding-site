@@ -112,19 +112,28 @@ let suppressScrollHashSync = false
 let suppressScrollHashSyncTimer: number | null = null
 let previousScrollRestoration: ScrollRestoration | null = null
 
-function activateAllLazySections() {
-  for (const id of lazySectionIds) lazyActive[id] = true
-}
-
 function normalizeSectionId(rawId: string): string {
-  return decodeURIComponent(rawId || '')
+  const cleaned = String(rawId || '')
     .trim()
     .replace(/^#/, '')
-    .toLowerCase()
+  if (!cleaned) return ''
+
+  try {
+    return decodeURIComponent(cleaned).trim().toLowerCase()
+  } catch {
+    return cleaned.toLowerCase()
+  }
 }
 
 function isScrollableSection(id: string): boolean {
   return scrollableSectionIds.has(id)
+}
+
+function activateLazySection(id: string) {
+  const normalizedId = normalizeSectionId(id)
+  if (!normalizedId) return
+  const lazyId = normalizedId as keyof typeof lazyActive
+  if (lazySectionIds.includes(lazyId)) lazyActive[lazyId] = true
 }
 
 function getMountedSections(): HTMLElement[] {
@@ -218,9 +227,7 @@ async function scrollToSectionId(
   const normalizedId = normalizeSectionId(id)
   if (!normalizedId || !isScrollableSection(normalizedId)) return false
 
-  if (lazySectionIds.includes(normalizedId as keyof typeof lazyActive)) {
-    activateAllLazySections()
-  }
+  activateLazySection(normalizedId)
   await waitForLayout(3)
 
   const target = document.getElementById(normalizedId)
@@ -300,7 +307,7 @@ function onHashChange() {
     void scrollToSectionId('hero', { updateHash: true, replaceHash: true, behavior: 'auto' })
     return
   }
-  void scrollToSectionId(hashSectionId, { updateHash: false })
+  void scrollToSectionId(hashSectionId, { updateHash: false, behavior: 'auto' })
 }
 
 let heroAnimation: anime.JSAnimation | null = null
