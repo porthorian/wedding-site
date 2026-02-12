@@ -82,13 +82,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 
-const venueMapUrl = computed(
-  () => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.location)}`
-)
-const churchMapUrl = computed(
-  () =>
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.churchLocation)}`
-)
 const rootRef = ref<HTMLElement | null>(null)
 const weddingDate = new Date(wedding.dateISO)
 const weddingDayLabel = computed(() => {
@@ -97,22 +90,6 @@ const weddingDayLabel = computed(() => {
 
   const month = date.toLocaleDateString('en-US', { month: 'long' })
   return `${month} ${toOrdinalDay(date.getDate())}`
-})
-const startTimeLabel = computed(() =>
-  `Starts ${wedding.hero.startsTime}`
-)
-const endTimeLabel = computed(() =>
-  `Ends ${wedding.hero.endsTime}`
-)
-const locationLabel = computed(() => {
-  const parts = wedding.location.split(',').map((part) => part.trim()).filter(Boolean)
-  if (parts.length >= 2) return `${parts[0]}, ${parts[1]}`
-  return wedding.location
-})
-const churchLocationLabel = computed(() => {
-  const parts = wedding.churchLocation.split(',').map((part) => part.trim()).filter(Boolean)
-  if (parts.length >= 2) return `${parts[0]}, ${parts[1]}`
-  return wedding.churchLocation
 })
 let introAnimation: anime.JSAnimation | null = null
 

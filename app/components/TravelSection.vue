@@ -15,37 +15,67 @@
         <header class="travel-header">
           <h2 class="panel-title">Travel &amp; Accommodations</h2>
           <p class="muted travel-intro">
-            Everything in one place for booking your stay and planning your weekend logistics.
+            Everything in one place for booking your stay and planning your day logistics.
           </p>
         </header>
 
-        <article class="travel-hero">
-          <v-img
-            :src="wedding.travel.photo"
-            alt="The TillingHouse sketch"
-            class="travel-hero-image"
-            cover
-          />
-          <div class="travel-hero-overlay">
-            <div class="travel-hero-meta">
-              <span class="travel-hero-kicker">Wedding Venue</span>
-              <span class="travel-hero-date">{{ wedding.hero.dateDisplay }}</span>
+        <section class="travel-hero" aria-label="Venue sketches">
+          <article class="travel-hero-panel travel-hero-panel--venue">
+            <v-img
+              :src="wedding.travel.photo"
+              alt="The TillingHouse sketch"
+              class="travel-hero-image"
+              cover
+            />
+            <div class="travel-hero-overlay">
+              <div class="travel-hero-meta">
+                <span class="travel-hero-kicker">Reception Venue</span>
+                <span class="travel-hero-date">{{ wedding.hero.dateDisplay }}</span>
+              </div>
+              <h3 class="travel-hero-title">{{ wedding.reception.name }}</h3>
+              <p class="travel-hero-copy">{{ wedding.reception.address }}</p>
+              <v-btn
+                :href="venueMapUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="text-none travel-hero-map-btn"
+                color="primary"
+                variant="elevated"
+                rounded="pill"
+              >
+                Open Reception Map
+              </v-btn>
             </div>
-            <h3 class="travel-hero-title">{{ wedding.location }}</h3>
-            <p class="travel-hero-copy">Reception destination for the day.</p>
-            <v-btn
-              :href="venueMapUrl"
-              target="_blank"
-              rel="noreferrer"
-              class="text-none travel-hero-map-btn"
-              color="primary"
-              variant="elevated"
-              rounded="pill"
-            >
-              Open Venue In Maps
-            </v-btn>
-          </div>
-        </article>
+          </article>
+
+          <article class="travel-hero-panel travel-hero-panel--church">
+            <v-img
+              :src="churchSketchPhoto"
+              alt="St. Mary of the Assumption church sketch"
+              class="travel-hero-image"
+              cover
+            />
+            <div class="travel-hero-overlay">
+              <div class="travel-hero-meta">
+                <span class="travel-hero-kicker">Ceremony Venue</span>
+                <span class="travel-hero-date">{{ wedding.hero.dateDisplay }}</span>
+              </div>
+              <h3 class="travel-hero-title">{{ wedding.church.name }}</h3>
+              <p class="travel-hero-copy">{{ wedding.church.address }}</p>
+              <v-btn
+                :href="churchMapUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="text-none travel-hero-map-btn"
+                color="primary"
+                variant="elevated"
+                rounded="pill"
+              >
+                Open Ceremony Map
+              </v-btn>
+            </div>
+          </article>
+        </section>
 
         <div class="travel-bottom">
           <section class="travel-block">
@@ -136,8 +166,12 @@ const rootRef = ref<HTMLElement | null>(null)
 let introAnimation: anime.JSAnimation | null = null
 
 const venueMapUrl = computed(
-  () => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.location)}`
+  () => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.reception.location)}`
 )
+const churchMapUrl = computed(
+  () => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(wedding.church.location)}`
+)
+const churchSketchPhoto = computed(() => wedding.travel.churchPhoto || '/images/st_mary_sketch.png')
 
 const airports = computed(() => {
   return (wedding.travel.airports || [])
@@ -160,7 +194,7 @@ function startIntroAnimation() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
   const cards = root.querySelectorAll<HTMLElement>(
-    '.travel-header, .travel-hero, .travel-hotel-card, .travel-airport-item, .travel-note-card'
+    '.travel-header, .travel-hero-panel, .travel-hotel-card, .travel-airport-item, .travel-note-card'
   )
   if (!cards.length) return
 
@@ -239,12 +273,57 @@ onBeforeUnmount(() => {
 }
 
 .travel-hero {
+  display: flex;
+  gap: 10px;
+  min-height: clamp(260px, 34vw, 380px);
+}
+
+.travel-hero-panel {
+  --panel-shift: 0px;
   position: relative;
   overflow: hidden;
+  flex: 1 1 0;
   border-radius: 18px;
   border: 1px solid rgba(var(--panel-border-rgb), 0.52);
-  box-shadow: 0 20px 34px rgba(var(--ink-rgb), 0.15);
-  min-height: clamp(260px, 34vw, 380px);
+  box-shadow: 0 20px 34px rgba(var(--ink-rgb), 0.14);
+  min-width: 0;
+  transition:
+    flex-grow 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 320ms ease,
+    filter 320ms ease;
+}
+
+.travel-hero-panel--venue {
+  --panel-shift: 8px;
+}
+
+.travel-hero-panel--church {
+  --panel-shift: -8px;
+}
+
+.travel-hero:hover .travel-hero-panel {
+  flex-grow: 0.9;
+  filter: saturate(0.92);
+}
+
+.travel-hero:hover .travel-hero-panel:hover {
+  flex-grow: 1.45;
+  transform: translateX(var(--panel-shift));
+  filter: saturate(1);
+  box-shadow: 0 26px 40px rgba(var(--ink-rgb), 0.2);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel-hero-panel {
+    transition: none;
+  }
+
+  .travel-hero:hover .travel-hero-panel,
+  .travel-hero:hover .travel-hero-panel:hover {
+    transform: none;
+  }
 }
 
 .travel-hero-image {
@@ -319,7 +398,7 @@ onBeforeUnmount(() => {
 .travel-hero-title {
   margin: 0;
   font-family: var(--font-title);
-  font-size: clamp(28px, 3.3vw, 42px);
+  font-size: clamp(24px, 2.6vw, 35px);
   line-height: 0.96;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.42);
 }
@@ -327,7 +406,7 @@ onBeforeUnmount(() => {
 .travel-hero-copy {
   margin: 0;
   font-size: 14px;
-  max-width: 52ch;
+  max-width: 46ch;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -495,8 +574,20 @@ onBeforeUnmount(() => {
     gap: 12px;
   }
 
+  .travel-hero {
+    gap: 8px;
+  }
+
   .travel-hero-title {
     font-size: clamp(20px, 6vw, 26px);
+  }
+
+  .travel-hero-panel--venue {
+    --panel-shift: 5px;
+  }
+
+  .travel-hero-panel--church {
+    --panel-shift: -5px;
   }
 
   :deep(.travel-hero-map-btn.v-btn) {
@@ -507,7 +598,21 @@ onBeforeUnmount(() => {
 
 @media (max-width: 760px) {
   .travel-hero {
+    flex-direction: column;
+    min-height: 0;
+    gap: 10px;
+  }
+
+  .travel-hero-panel {
     min-height: clamp(280px, 54vw, 340px);
+    flex: 1 1 auto;
+  }
+
+  .travel-hero:hover .travel-hero-panel,
+  .travel-hero:hover .travel-hero-panel:hover {
+    flex-grow: 1;
+    transform: none;
+    filter: none;
   }
 
   .travel-hero-image {

@@ -11,17 +11,10 @@
               Thank you for celebrating with us. Pick whichever store feels easiest for you.
             </p>
           </div>
-          <aside class="registry-how">
-            <p class="registry-how-label">How It Works</p>
-            <p class="registry-how-text">
-              Open any store below, choose what feels right, and checkout directly on that site.
-            </p>
-          </aside>
         </header>
 
         <div class="registry-meta" role="list" aria-label="Registry highlights">
           <span class="registry-meta-pill" role="listitem">{{ registryCountLabel }}</span>
-          <span class="registry-meta-pill" role="listitem">Direct checkout links</span>
           <span class="registry-meta-pill" role="listitem">Gifts optional</span>
         </div>
 
