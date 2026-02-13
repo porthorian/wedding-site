@@ -2,6 +2,18 @@
   <div ref="rootRef" class="runshow-shell">
     <v-card elevation="1" class="runshow-card section-card rounded-xl">
       <div class="runshow-aura" aria-hidden="true" />
+      <div class="runshow-leaf-fall" aria-hidden="true">
+        <span
+          v-for="leaf in leafSprites"
+          :key="leaf.id"
+          class="runshow-leaf"
+          :style="leafStyle(leaf)"
+        >
+          <span class="runshow-leaf-wobble">
+            <img :src="scheduleLeafSvgUrl" alt="" decoding="async" loading="lazy" />
+          </span>
+        </span>
+      </div>
       <v-card-text class="panel-content runshow-content">
         <header class="runshow-header">
           <div class="runshow-heading">
@@ -80,10 +92,38 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as anime from 'animejs'
+import scheduleLeafSvgUrl from '~/assets/svgs/10120674_1276.svg'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
 const weddingDate = new Date(wedding.dateISO)
+type LeafSprite = {
+  id: number
+  left: string
+  size: string
+  delay: string
+  duration: string
+  drift: string
+  spin: string
+  opacity: string
+  blur: string
+}
+
+const leafSprites: LeafSprite[] = [
+  { id: 1, left: '6%', size: '126px', delay: '-5.2s', duration: '30s', drift: '72px', spin: '16deg', opacity: '0.26', blur: '0px' },
+  { id: 2, left: '21%', size: '102px', delay: '-17s', duration: '30s', drift: '-86px', spin: '-20deg', opacity: '0.22', blur: '0px' },
+  { id: 3, left: '36%', size: '134px', delay: '-8.3s', duration: '30s', drift: '94px', spin: '22deg', opacity: '0.24', blur: '0px' },
+  { id: 4, left: '53%', size: '112px', delay: '-2.7s', duration: '28s', drift: '-66px', spin: '-16deg', opacity: '0.22', blur: '0px' },
+  { id: 5, left: '69%', size: '118px', delay: '-12.5s', duration: '28s', drift: '82px', spin: '18deg', opacity: '0.24', blur: '0px' },
+  { id: 6, left: '84%', size: '96px', delay: '-19.2s', duration: '28s', drift: '-54px', spin: '-14deg', opacity: '0.2', blur: '0px' },
+  { id: 7, left: '12%', size: '108px', delay: '-9.4s', duration: '28s', drift: '64px', spin: '15deg', opacity: '0.22', blur: '0px' },
+  { id: 8, left: '28%', size: '120px', delay: '-1.8s', duration: '28s', drift: '-92px', spin: '-23deg', opacity: '0.2', blur: '0px' },
+  { id: 9, left: '44%', size: '98px', delay: '-14.1s', duration: '30s', drift: '58px', spin: '12deg', opacity: '0.18', blur: '0px' },
+  { id: 10, left: '61%', size: '128px', delay: '-6.6s', duration: '30s', drift: '-78px', spin: '-17deg', opacity: '0.2', blur: '0px' },
+  { id: 11, left: '77%', size: '104px', delay: '-22.3s', duration: '30s', drift: '70px', spin: '19deg', opacity: '0.22', blur: '0px' },
+  { id: 12, left: '91%', size: '92px', delay: '-11.7s', duration: '30s', drift: '-60px', spin: '-13deg', opacity: '0.18', blur: '0px' },
+]
+
 const weddingDayLabel = computed(() => {
   const date = new Date(wedding.dateISO)
   if (Number.isNaN(date.getTime())) return 'August 7th'
@@ -100,6 +140,26 @@ function toOrdinalDay(day: number): string {
   if (moduloTen === 2 && moduloHundred !== 12) return `${day}nd`
   if (moduloTen === 3 && moduloHundred !== 13) return `${day}rd`
   return `${day}th`
+}
+
+function leafStyle(leaf: LeafSprite): Record<string, string> {
+  const driftMagnitude = Math.abs(Number.parseFloat(leaf.drift)) || 64
+  const spinMagnitude = Math.abs(Number.parseFloat(leaf.spin)) || 16
+  const durationValue = Number.parseFloat(leaf.duration) || 24
+
+  return {
+    '--leaf-left': leaf.left,
+    '--leaf-size': leaf.size,
+    '--leaf-delay': leaf.delay,
+    '--leaf-duration': leaf.duration,
+    '--leaf-drift': leaf.drift,
+    '--leaf-spin': leaf.spin,
+    '--leaf-opacity': leaf.opacity,
+    '--leaf-blur': leaf.blur,
+    '--leaf-wobble-x': `${Math.max(10, Math.round(driftMagnitude * 0.22))}px`,
+    '--leaf-wobble-rotate': `${Math.max(8, Math.round(spinMagnitude * 0.68))}deg`,
+    '--leaf-wobble-duration': `${Math.max(2.8, durationValue * 0.2).toFixed(2)}s`,
+  }
 }
 
 function scrollToTravelSection() {
@@ -156,6 +216,7 @@ onBeforeUnmount(() => {
 .runshow-card {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border: 1px solid rgba(var(--panel-border-rgb), 0.56);
   background: rgba(var(--panel-surface-rgb), 0.92);
 }
@@ -163,11 +224,51 @@ onBeforeUnmount(() => {
 .runshow-aura {
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
     radial-gradient(circle at 4% 8%, rgba(255, 242, 194, 0.18), transparent 42%),
     radial-gradient(circle at 94% 10%, rgba(var(--light-magenta-rgb), 0.18), transparent 44%),
     radial-gradient(circle at 82% 88%, rgba(var(--sage-rgb), 0.16), transparent 46%);
+}
+
+.runshow-leaf-fall {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.runshow-leaf {
+  position: absolute;
+  top: -160px;
+  left: var(--leaf-left);
+  width: var(--leaf-size);
+  opacity: var(--leaf-opacity);
+  filter: blur(var(--leaf-blur));
+  transform-origin: 50% 25%;
+  will-change: transform, opacity;
+  animation: runshow-leaf-fall var(--leaf-duration) linear infinite;
+  animation-delay: var(--leaf-delay);
+}
+
+.runshow-leaf-wobble {
+  width: 100%;
+  display: block;
+  transform-origin: 52% 20%;
+  will-change: transform;
+  animation: runshow-leaf-wobble var(--leaf-wobble-duration) ease-in-out infinite;
+}
+
+.runshow-leaf img {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.92;
+  filter: grayscale(1) brightness(0.52) contrast(1.08);
+  transform-origin: 50% 56%;
+  animation: runshow-leaf-roll calc(var(--leaf-wobble-duration) * 0.85) ease-in-out infinite alternate;
 }
 
 .runshow-content {
@@ -176,6 +277,54 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: clamp(16px, 2.3vw, 24px);
+}
+
+@keyframes runshow-leaf-fall {
+  0% {
+    transform: translate3d(0, -130px, 0) rotate(0deg) scale(0.72);
+    opacity: 0;
+  }
+
+  14% {
+    opacity: var(--leaf-opacity);
+  }
+
+  100% {
+    transform: translate3d(var(--leaf-drift), calc(100vh + 980px), 0) rotate(var(--leaf-spin)) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes runshow-leaf-wobble {
+  0% {
+    transform: translateX(calc(var(--leaf-wobble-x) * -0.72)) rotate(calc(var(--leaf-wobble-rotate) * -1));
+  }
+
+  24% {
+    transform: translateX(var(--leaf-wobble-x)) rotate(calc(var(--leaf-wobble-rotate) * 0.88));
+  }
+
+  52% {
+    transform: translateX(calc(var(--leaf-wobble-x) * -0.44)) rotate(calc(var(--leaf-wobble-rotate) * -0.55));
+  }
+
+  76% {
+    transform: translateX(calc(var(--leaf-wobble-x) * 0.78)) rotate(calc(var(--leaf-wobble-rotate) * 0.62));
+  }
+
+  100% {
+    transform: translateX(calc(var(--leaf-wobble-x) * -0.72)) rotate(calc(var(--leaf-wobble-rotate) * -1));
+  }
+}
+
+@keyframes runshow-leaf-roll {
+  0% {
+    transform: rotate(calc(var(--leaf-wobble-rotate) * -0.18)) scale(0.99);
+  }
+
+  100% {
+    transform: rotate(calc(var(--leaf-wobble-rotate) * 0.22)) scale(1.01);
+  }
 }
 
 .runshow-header {
@@ -588,6 +737,15 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 760px) {
+  .runshow-leaf {
+    width: calc(var(--leaf-size) * 0.74);
+    opacity: calc(var(--leaf-opacity) * 0.82);
+  }
+
+  .runshow-leaf:nth-child(n + 5) {
+    display: none;
+  }
+
   .runshow-content {
     gap: 14px;
   }
@@ -704,6 +862,40 @@ onBeforeUnmount(() => {
   .runshow-step-time {
     padding: 4px 8px;
     font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runshow-leaf-fall {
+    opacity: 0.88;
+  }
+
+  .runshow-leaf,
+  .runshow-leaf-wobble,
+  .runshow-leaf img {
+    animation: none !important;
+  }
+
+  .runshow-leaf {
+    top: auto;
+    transform: none;
+  }
+
+  .runshow-leaf:nth-child(1) { top: 8%; }
+  .runshow-leaf:nth-child(2) { top: 24%; }
+  .runshow-leaf:nth-child(3) { top: 42%; }
+  .runshow-leaf:nth-child(4) { top: 60%; }
+  .runshow-leaf:nth-child(5) { top: 74%; }
+  .runshow-leaf:nth-child(6) { top: 14%; }
+  .runshow-leaf:nth-child(7) { top: 30%; }
+  .runshow-leaf:nth-child(8) { top: 48%; }
+  .runshow-leaf:nth-child(9) { top: 66%; }
+  .runshow-leaf:nth-child(10) { top: 82%; }
+  .runshow-leaf:nth-child(11) { top: 18%; }
+  .runshow-leaf:nth-child(12) { top: 36%; }
+
+  .runshow-leaf img {
+    transform: rotate(-6deg);
   }
 }
 </style>

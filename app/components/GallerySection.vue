@@ -85,6 +85,31 @@
           </v-btn>
 
           <div class="gallery-lightbox-image-wrap">
+            <div
+              v-if="isActiveImageLoading"
+              class="gallery-lightbox-loader"
+              role="status"
+              aria-live="polite"
+              aria-label="Loading gallery image"
+            >
+              <div class="gallery-lightbox-loader-content">
+                <v-progress-circular
+                  indeterminate
+                  color="primary"
+                  :size="46"
+                  :width="4"
+                />
+                <span class="gallery-lightbox-loader-label">Loading photo...</span>
+              </div>
+            </div>
+            <div
+              v-else-if="hasActiveImageError"
+              class="gallery-lightbox-error"
+              role="status"
+              aria-live="polite"
+            >
+              We could not load this photo.
+            </div>
             <Transition name="gallery-lightbox-fade" mode="out-in">
               <NuxtImg
                 v-if="activePhotoSrc"
@@ -98,6 +123,9 @@
                 fetchpriority="high"
                 fit="contain"
                 :quality="84"
+                :data-image-token="activeImageToken"
+                @load="onActiveImageLoad"
+                @error="onActiveImageError"
               />
             </Transition>
           </div>
@@ -113,13 +141,23 @@
           </v-btn>
         </div>
 
-        <div class="gallery-filmstrip" role="listbox" aria-label="Gallery thumbnails">
+        <div
+          ref="filmstripRef"
+          class="gallery-filmstrip"
+          role="listbox"
+          aria-label="Gallery thumbnails"
+          @wheel.passive="onFilmstripWheel"
+          @pointerdown="onFilmstripPointerDown"
+          @touchstart.passive="onFilmstripTouchStart"
+          @scroll.passive="onFilmstripScroll"
+        >
           <button
             v-for="(photo, index) in photos"
             :key="`thumb-${photo.url}`"
             type="button"
             class="gallery-thumb"
             :class="{ 'gallery-thumb--active': index === galleryIndex }"
+            :data-thumb-index="index"
             :aria-label="`View photo ${index + 1}`"
             :aria-selected="index === galleryIndex"
             @mouseenter="warmLightboxPhoto(index)"
@@ -150,9 +188,30 @@ import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
+const filmstripRef = ref<HTMLElement | null>(null)
 const galleryIndex = ref(0)
 const isLightboxOpen = ref(false)
+const isActiveImageLoading = ref(false)
+const hasActiveImageError = ref(false)
+const activeImageToken = ref(0)
+const imageBuilder = useImage()
+const LIGHTBOX_PRELOAD_RADIUS = 1
+const LIGHTBOX_PRELOAD_WIDTH = 1920
+const LIGHTBOX_PRELOAD_QUALITY = 82
+const WHEEL_NAV_TRIGGER_DELTA = 44
+const WHEEL_NAV_COOLDOWN_MS = 260
+const FILMSTRIP_INTERACTION_HOLD_MS = 540
+const FILMSTRIP_AUTO_SCROLL_LOCK_MS = 280
 let introAnimation: anime.JSAnimation | null = null
+let isWheelListenerBound = false
+let wheelAccumulatedDelta = 0
+let wheelAccumulatorResetTimer: number | null = null
+let wheelNavigationLockTimer: number | null = null
+let wheelNavigationLocked = false
+let filmstripInteractionTimer: number | null = null
+let filmstripAutoScrollLockTimer: number | null = null
+let filmstripUserInteracting = false
+let suppressFilmstripScrollEvent = false
 
 const tilePattern = [
   'gallery-tile--hero',
@@ -181,7 +240,6 @@ const activePhotoSrc = computed(() => {
 const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
 const preloadedLightboxSources = new Set<string>()
 const lightboxPreloadQueue = new Map<string, Promise<void>>()
-let preloadAllTimer: number | null = null
 
 function tileClass(index: number): string {
   return tilePattern[index % tilePattern.length] ?? 'gallery-tile--small'
@@ -201,6 +259,15 @@ function encodedPhotoUrl(url: string): string {
   return encodeURI(url)
 }
 
+function lightboxPreloadUrl(url: string): string {
+  const encodedUrl = encodedPhotoUrl(url)
+  return imageBuilder(encodedUrl, {
+    width: LIGHTBOX_PRELOAD_WIDTH,
+    quality: LIGHTBOX_PRELOAD_QUALITY,
+    fit: 'contain',
+  })
+}
+
 function toCircularIndex(index: number): number {
   if (!totalPhotos.value) return 0
   return (index % totalPhotos.value + totalPhotos.value) % totalPhotos.value
@@ -211,7 +278,41 @@ function lightboxSrcAt(index: number): string {
   const normalizedIndex = toCircularIndex(index)
   const entry = photos.value[normalizedIndex]
   if (!entry) return ''
-  return encodedPhotoUrl(entry.url)
+  return lightboxPreloadUrl(entry.url)
+}
+
+function currentEventToken(event: Event): number {
+  const target = event.target as HTMLElement | null
+  if (!target) return -1
+  const rawToken = target.getAttribute('data-image-token')
+  if (!rawToken) return -1
+  const parsed = Number.parseInt(rawToken, 10)
+  return Number.isFinite(parsed) ? parsed : -1
+}
+
+function beginActiveImageLoad(source: string) {
+  if (!source) {
+    isActiveImageLoading.value = false
+    hasActiveImageError.value = false
+    return
+  }
+  activeImageToken.value += 1
+  hasActiveImageError.value = false
+  isActiveImageLoading.value = true
+}
+
+function onActiveImageLoad(event: Event) {
+  if (currentEventToken(event) !== activeImageToken.value) return
+
+  hasActiveImageError.value = false
+  isActiveImageLoading.value = false
+}
+
+function onActiveImageError(event: Event) {
+  if (currentEventToken(event) !== activeImageToken.value) return
+
+  hasActiveImageError.value = true
+  isActiveImageLoading.value = false
 }
 
 function preloadLightboxSource(source: string): Promise<void> {
@@ -232,16 +333,10 @@ function preloadLightboxSource(source: string): Promise<void> {
 
     image.onload = finish
     image.onerror = finish
-    image.decoding = 'async'
     image.src = source
 
     if (image.complete) {
       finish()
-      return
-    }
-
-    if (typeof image.decode === 'function') {
-      void image.decode().then(finish).catch(() => {})
     }
   })
 
@@ -249,29 +344,13 @@ function preloadLightboxSource(source: string): Promise<void> {
   return preloadPromise
 }
 
-function preloadAround(index: number, radius = 2) {
+function preloadAround(index: number, radius = LIGHTBOX_PRELOAD_RADIUS) {
   if (!totalPhotos.value) return
   for (let offset = -radius; offset <= radius; offset += 1) {
     const source = lightboxSrcAt(index + offset)
     if (!source) continue
     void preloadLightboxSource(source)
   }
-}
-
-function preloadAllLightboxImages() {
-  for (let index = 0; index < totalPhotos.value; index += 1) {
-    const source = lightboxSrcAt(index)
-    if (!source) continue
-    void preloadLightboxSource(source)
-  }
-}
-
-function schedulePreloadAll() {
-  if (preloadAllTimer !== null) window.clearTimeout(preloadAllTimer)
-  preloadAllTimer = window.setTimeout(() => {
-    preloadAllTimer = null
-    preloadAllLightboxImages()
-  }, 260)
 }
 
 function warmLightboxPhoto(index: number) {
@@ -285,8 +364,7 @@ function openLightbox(index: number) {
   galleryIndex.value = Math.min(Math.max(index, 0), totalPhotos.value - 1)
   isLightboxOpen.value = true
   warmLightboxPhoto(galleryIndex.value)
-  preloadAround(galleryIndex.value, 3)
-  schedulePreloadAll()
+  preloadAround(galleryIndex.value)
 }
 
 function selectPhoto(index: number) {
@@ -294,7 +372,7 @@ function selectPhoto(index: number) {
   const nextIndex = Math.min(Math.max(index, 0), totalPhotos.value - 1)
   warmLightboxPhoto(nextIndex)
   galleryIndex.value = nextIndex
-  preloadAround(galleryIndex.value, 3)
+  preloadAround(galleryIndex.value)
 }
 
 function nextPhoto() {
@@ -328,6 +406,160 @@ function onWindowKeydown(event: KeyboardEvent) {
   }
 }
 
+function markFilmstripInteracting() {
+  filmstripUserInteracting = true
+  if (filmstripInteractionTimer !== null) {
+    window.clearTimeout(filmstripInteractionTimer)
+  }
+  filmstripInteractionTimer = window.setTimeout(() => {
+    filmstripUserInteracting = false
+    filmstripInteractionTimer = null
+  }, FILMSTRIP_INTERACTION_HOLD_MS)
+}
+
+function lockFilmstripAutoScroll(durationMs: number) {
+  suppressFilmstripScrollEvent = true
+  if (filmstripAutoScrollLockTimer !== null) {
+    window.clearTimeout(filmstripAutoScrollLockTimer)
+  }
+  filmstripAutoScrollLockTimer = window.setTimeout(() => {
+    suppressFilmstripScrollEvent = false
+    filmstripAutoScrollLockTimer = null
+  }, durationMs)
+}
+
+function clearFilmstripInteractionState() {
+  filmstripUserInteracting = false
+  suppressFilmstripScrollEvent = false
+  if (filmstripInteractionTimer !== null) {
+    window.clearTimeout(filmstripInteractionTimer)
+    filmstripInteractionTimer = null
+  }
+  if (filmstripAutoScrollLockTimer !== null) {
+    window.clearTimeout(filmstripAutoScrollLockTimer)
+    filmstripAutoScrollLockTimer = null
+  }
+}
+
+function onFilmstripWheel() {
+  markFilmstripInteracting()
+}
+
+function onFilmstripPointerDown() {
+  markFilmstripInteracting()
+}
+
+function onFilmstripTouchStart() {
+  markFilmstripInteracting()
+}
+
+function onFilmstripScroll() {
+  if (suppressFilmstripScrollEvent) return
+  markFilmstripInteracting()
+}
+
+function isEventInsideFilmstrip(target: EventTarget | null): boolean {
+  const node = target as HTMLElement | null
+  if (!node) return false
+  return Boolean(node.closest('.gallery-filmstrip'))
+}
+
+function ensureActiveThumbVisible(options?: { force?: boolean, behavior?: ScrollBehavior }) {
+  const filmstrip = filmstripRef.value
+  if (!filmstrip || !totalPhotos.value) return
+  if (!options?.force && filmstripUserInteracting) return
+
+  const activeThumb = filmstrip.querySelector<HTMLElement>(
+    `[data-thumb-index="${galleryIndex.value}"]`,
+  )
+  if (!activeThumb) return
+
+  const edgePadding = 10
+  const viewportLeft = filmstrip.scrollLeft + edgePadding
+  const viewportRight = filmstrip.scrollLeft + filmstrip.clientWidth - edgePadding
+  const thumbLeft = activeThumb.offsetLeft
+  const thumbRight = thumbLeft + activeThumb.offsetWidth
+
+  if (thumbLeft >= viewportLeft && thumbRight <= viewportRight) return
+
+  const centeredLeft = thumbLeft - ((filmstrip.clientWidth - activeThumb.offsetWidth) / 2)
+  const maxLeft = Math.max(0, filmstrip.scrollWidth - filmstrip.clientWidth)
+  const nextLeft = Math.min(maxLeft, Math.max(0, centeredLeft))
+  const behavior = options?.behavior ?? 'smooth'
+
+  lockFilmstripAutoScroll(behavior === 'smooth' ? FILMSTRIP_AUTO_SCROLL_LOCK_MS : 40)
+  filmstrip.scrollTo({ left: nextLeft, behavior })
+}
+
+function clearWheelAccumulator() {
+  wheelAccumulatedDelta = 0
+  if (wheelAccumulatorResetTimer !== null) {
+    window.clearTimeout(wheelAccumulatorResetTimer)
+    wheelAccumulatorResetTimer = null
+  }
+}
+
+function lockWheelNavigation() {
+  wheelNavigationLocked = true
+  if (wheelNavigationLockTimer !== null) {
+    window.clearTimeout(wheelNavigationLockTimer)
+  }
+  wheelNavigationLockTimer = window.setTimeout(() => {
+    wheelNavigationLocked = false
+    wheelNavigationLockTimer = null
+  }, WHEEL_NAV_COOLDOWN_MS)
+}
+
+function isEventInsideLightbox(target: EventTarget | null): boolean {
+  const node = target as HTMLElement | null
+  if (!node) return false
+  return Boolean(node.closest('.gallery-lightbox-shell'))
+}
+
+function onWindowWheel(event: WheelEvent) {
+  if (!isLightboxOpen.value || !totalPhotos.value) return
+  if (isEventInsideFilmstrip(event.target)) return
+  if (!isEventInsideLightbox(event.target)) return
+  if (event.ctrlKey) return
+
+  event.preventDefault()
+  if (wheelNavigationLocked) return
+
+  wheelAccumulatedDelta += event.deltaY
+  if (Math.abs(wheelAccumulatedDelta) < WHEEL_NAV_TRIGGER_DELTA) {
+    if (wheelAccumulatorResetTimer !== null) window.clearTimeout(wheelAccumulatorResetTimer)
+    wheelAccumulatorResetTimer = window.setTimeout(() => {
+      wheelAccumulatorResetTimer = null
+      wheelAccumulatedDelta = 0
+    }, 140)
+    return
+  }
+
+  if (wheelAccumulatedDelta > 0) nextPhoto()
+  else prevPhoto()
+
+  clearWheelAccumulator()
+  lockWheelNavigation()
+}
+
+function bindWheelNavigation() {
+  if (isWheelListenerBound) return
+  window.addEventListener('wheel', onWindowWheel, { passive: false })
+  isWheelListenerBound = true
+}
+
+function unbindWheelNavigation() {
+  if (!isWheelListenerBound) return
+  window.removeEventListener('wheel', onWindowWheel)
+  isWheelListenerBound = false
+  clearWheelAccumulator()
+  if (wheelNavigationLockTimer !== null) {
+    window.clearTimeout(wheelNavigationLockTimer)
+    wheelNavigationLockTimer = null
+  }
+  wheelNavigationLocked = false
+}
+
 function startIntroAnimation() {
   if (introAnimation) return
   const root = rootRef.value
@@ -347,14 +579,30 @@ function startIntroAnimation() {
 }
 
 watch(isLightboxOpen, (open) => {
-  if (!open) return
-  preloadAround(galleryIndex.value, 3)
-  schedulePreloadAll()
+  if (!open) {
+    unbindWheelNavigation()
+    clearFilmstripInteractionState()
+    isActiveImageLoading.value = false
+    hasActiveImageError.value = false
+    return
+  }
+  bindWheelNavigation()
+  beginActiveImageLoad(activePhotoSrc.value)
+  preloadAround(galleryIndex.value)
+  void nextTick(() => {
+    ensureActiveThumbVisible({ force: true, behavior: 'auto' })
+  })
 })
 
 watch(galleryIndex, (index) => {
   if (!isLightboxOpen.value) return
-  preloadAround(index, 3)
+  preloadAround(index)
+  ensureActiveThumbVisible()
+})
+
+watch(activePhotoSrc, (source) => {
+  if (!isLightboxOpen.value) return
+  beginActiveImageLoad(source)
 })
 
 onMounted(async () => {
@@ -366,10 +614,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   introAnimation?.pause()
   introAnimation = null
-  if (preloadAllTimer !== null) {
-    window.clearTimeout(preloadAllTimer)
-    preloadAllTimer = null
-  }
+  unbindWheelNavigation()
+  clearFilmstripInteractionState()
   window.removeEventListener('keydown', onWindowKeydown)
 })
 </script>
@@ -618,6 +864,37 @@ onBeforeUnmount(() => {
   object-fit: contain;
   display: block;
   will-change: opacity;
+}
+
+.gallery-lightbox-loader,
+.gallery-lightbox-error {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(var(--panel-surface-rgb), 0.88), rgba(var(--panel-surface-rgb), 0.74));
+}
+
+.gallery-lightbox-loader-content {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.gallery-lightbox-loader-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--ink-muted-rgb), 0.84);
+}
+
+.gallery-lightbox-error {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: rgba(var(--ink-muted-rgb), 0.86);
 }
 
 .gallery-lightbox-fade-enter-active,
