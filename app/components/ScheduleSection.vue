@@ -10,7 +10,7 @@
           :style="leafStyle(leaf)"
         >
           <span class="runshow-leaf-wobble">
-            <img :src="scheduleLeafSvgUrl" alt="" decoding="async" loading="lazy" />
+            <img :src="leafSvgSrc(leaf)" alt="" decoding="async" loading="lazy" />
           </span>
         </span>
       </div>
@@ -92,7 +92,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as anime from 'animejs'
-import scheduleLeafSvgUrl from '~/assets/svgs/10120674_1276.svg'
+import scheduleLeafPrimarySvgUrl from '~/assets/svgs/3147334_1016.svg'
+import scheduleLeafSecondarySvgUrl from '~/assets/svgs/10123863_1780.svg'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -160,6 +161,12 @@ function leafStyle(leaf: LeafSprite): Record<string, string> {
     '--leaf-wobble-rotate': `${Math.max(8, Math.round(spinMagnitude * 0.68))}deg`,
     '--leaf-wobble-duration': `${Math.max(2.8, durationValue * 0.2).toFixed(2)}s`,
   }
+}
+
+function leafSvgSrc(leaf: LeafSprite): string {
+  return leaf.id % 2 === 0
+    ? scheduleLeafSecondarySvgUrl
+    : scheduleLeafPrimarySvgUrl
 }
 
 function scrollToTravelSection() {
