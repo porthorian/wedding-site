@@ -160,11 +160,12 @@
             :data-thumb-index="index"
             :aria-label="`View photo ${index + 1}`"
             :aria-selected="index === galleryIndex"
-            @mouseenter="warmLightboxPhoto(index)"
-            @focus="warmLightboxPhoto(index)"
+            @mouseenter="warmSupplementalLightboxPhoto(index)"
+            @focus="warmSupplementalLightboxPhoto(index)"
             @click="selectPhoto(index)"
           >
             <NuxtImg
+              v-if="isLightboxThumbsReady"
               :src="encodedPhotoUrl(photo.url)"
               :alt="photoLabel(index)"
               class="gallery-thumb-image"
@@ -174,6 +175,11 @@
               decoding="async"
               fit="cover"
               :quality="68"
+            />
+            <div
+              v-else
+              class="gallery-thumb-placeholder"
+              aria-hidden="true"
             />
           </button>
         </div>
@@ -193,6 +199,8 @@ const galleryIndex = ref(0)
 const isLightboxOpen = ref(false)
 const isActiveImageLoading = ref(false)
 const hasActiveImageError = ref(false)
+const isLightboxThumbsReady = ref(false)
+const canLoadSupplementalLightboxAssets = ref(false)
 const activeImageToken = ref(0)
 const imageBuilder = useImage()
 const LIGHTBOX_PRELOAD_RADIUS = 1
@@ -294,11 +302,20 @@ function beginActiveImageLoad(source: string) {
   if (!source) {
     isActiveImageLoading.value = false
     hasActiveImageError.value = false
+    canLoadSupplementalLightboxAssets.value = false
     return
   }
   activeImageToken.value += 1
   hasActiveImageError.value = false
   isActiveImageLoading.value = true
+  canLoadSupplementalLightboxAssets.value = false
+}
+
+function releaseSupplementalLightboxAssets() {
+  if (!isLightboxOpen.value) return
+  isLightboxThumbsReady.value = true
+  canLoadSupplementalLightboxAssets.value = true
+  preloadAround(galleryIndex.value)
 }
 
 function onActiveImageLoad(event: Event) {
@@ -306,13 +323,16 @@ function onActiveImageLoad(event: Event) {
 
   hasActiveImageError.value = false
   isActiveImageLoading.value = false
+  releaseSupplementalLightboxAssets()
 }
 
-function onActiveImageError(event: Event) {
-  if (currentEventToken(event) !== activeImageToken.value) return
+function onActiveImageError(payload: string | Event) {
+  const event = payload instanceof Event ? payload : null
+  if (event && currentEventToken(event) !== activeImageToken.value) return
 
   hasActiveImageError.value = true
   isActiveImageLoading.value = false
+  releaseSupplementalLightboxAssets()
 }
 
 function preloadLightboxSource(source: string): Promise<void> {
@@ -359,12 +379,16 @@ function warmLightboxPhoto(index: number) {
   void preloadLightboxSource(source)
 }
 
+function warmSupplementalLightboxPhoto(index: number) {
+  if (!canLoadSupplementalLightboxAssets.value) return
+  warmLightboxPhoto(index)
+}
+
 function openLightbox(index: number) {
   if (!totalPhotos.value) return
   galleryIndex.value = Math.min(Math.max(index, 0), totalPhotos.value - 1)
   isLightboxOpen.value = true
   warmLightboxPhoto(galleryIndex.value)
-  preloadAround(galleryIndex.value)
 }
 
 function selectPhoto(index: number) {
@@ -372,7 +396,6 @@ function selectPhoto(index: number) {
   const nextIndex = Math.min(Math.max(index, 0), totalPhotos.value - 1)
   warmLightboxPhoto(nextIndex)
   galleryIndex.value = nextIndex
-  preloadAround(galleryIndex.value)
 }
 
 function nextPhoto() {
@@ -584,19 +607,21 @@ watch(isLightboxOpen, (open) => {
     clearFilmstripInteractionState()
     isActiveImageLoading.value = false
     hasActiveImageError.value = false
+    isLightboxThumbsReady.value = false
+    canLoadSupplementalLightboxAssets.value = false
     return
   }
   bindWheelNavigation()
+  isLightboxThumbsReady.value = false
+  canLoadSupplementalLightboxAssets.value = false
   beginActiveImageLoad(activePhotoSrc.value)
-  preloadAround(galleryIndex.value)
   void nextTick(() => {
     ensureActiveThumbVisible({ force: true, behavior: 'auto' })
   })
 })
 
-watch(galleryIndex, (index) => {
+watch(galleryIndex, () => {
   if (!isLightboxOpen.value) return
-  preloadAround(index)
   ensureActiveThumbVisible()
 })
 
@@ -959,6 +984,14 @@ onBeforeUnmount(() => {
   display: block;
 }
 
+.gallery-thumb-placeholder {
+  width: 100%;
+  height: 72px;
+  display: block;
+  background:
+    linear-gradient(135deg, rgba(var(--panel-border-rgb), 0.24), rgba(var(--panel-border-rgb), 0.12));
+}
+
 .gallery-thumb--active {
   opacity: 1;
   border-color: rgba(var(--v-theme-primary), 0.7);
@@ -1076,6 +1109,10 @@ onBeforeUnmount(() => {
   }
 
   .gallery-thumb-image {
+    height: 60px;
+  }
+
+  .gallery-thumb-placeholder {
     height: 60px;
   }
 }

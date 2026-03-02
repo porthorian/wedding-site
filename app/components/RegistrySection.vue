@@ -14,7 +14,6 @@
         </header>
 
         <div class="registry-meta" role="list" aria-label="Registry highlights">
-          <span class="registry-meta-pill" role="listitem">{{ registryCountLabel }}</span>
           <span class="registry-meta-pill" role="listitem">Gifts optional</span>
         </div>
 
@@ -82,7 +81,6 @@ import * as anime from 'animejs'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
-const registryCountLabel = computed(() => `${wedding.registry.length} curated stores`)
 let introAnimation: anime.JSAnimation | null = null
 
 function startIntroAnimation() {
