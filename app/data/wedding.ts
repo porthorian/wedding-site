@@ -19,7 +19,6 @@ export const wedding = {
   schedule: [
     { time: '2:45 PM', title: 'Guests Arrive', detail: 'St. Mary of the Assumption Roman Catholic Church in Deal, NJ' },
     { time: '3:00 PM', title: 'Ceremony', detail: "Please Arrive By 2:45 PM" },
-    { time: "4:00 PM", title: 'Limbo', detail: 'TBD' },
     { time: '6:00 PM', title: 'Cocktail Hour', detail: 'Drinks + bites @ The TillingHouse in Eatontown, NJ' },
     { time: '7:00 PM', title: 'Reception', detail: 'Dinner + dancing' },
   ],
