@@ -1,8 +1,10 @@
 FROM node:25.8-alpine AS builder
 WORKDIR /app
 
-# Use Corepack to ensure yarn is available in CI-friendly Node images
-#RUN corepack enable && corepack prepare yarn@stable --activate
+# Use Corepack and pin Yarn to match project lockfile/tooling
+RUN npm install -g corepack@0.34.1 --force && \
+ corepack enable && \
+ corepack prepare yarn@4.12.0 --activate
 
 # Install dependencies (use frozen lockfile if you have yarn.lock)
 COPY package.json yarn.lock .yarnrc.yml ./
