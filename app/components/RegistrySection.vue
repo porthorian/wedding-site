@@ -2,6 +2,16 @@
   <div ref="rootRef" class="registry-shell">
     <v-card elevation="1" class="registry-card section-card rounded-xl">
       <div class="registry-aura" aria-hidden="true" />
+      <div class="registry-leaf-layer" aria-hidden="true">
+        <span
+          v-for="leaf in registryLeafSprites"
+          :key="leaf.id"
+          class="registry-leaf"
+          :style="registryLeafStyle(leaf)"
+        >
+          <img :src="registryLeafSvgUrl" alt="" loading="lazy" decoding="async" />
+        </span>
+      </div>
       <v-card-text class="panel-content registry-content">
         <header class="registry-header">
           <div class="registry-header-copy">
@@ -76,29 +86,79 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as anime from 'animejs'
+import registryLeafSvgUrl from '~/assets/svgs/3147334_1016.svg'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
+type RegistryLeafSprite = {
+  id: number
+  left: string
+  top: string
+  size: string
+  rotate: string
+  opacity: string
+  delay: string
+  duration: string
+  driftX: string
+  driftY: string
+}
+
+const registryLeafSprites: RegistryLeafSprite[] = [
+  { id: 1, left: '-4%', top: '2%', size: '148px', rotate: '-24deg', opacity: '0.17', delay: '-2.6s', duration: '11.8s', driftX: '14px', driftY: '-8px' },
+  { id: 2, left: '16%', top: '10%', size: '116px', rotate: '18deg', opacity: '0.16', delay: '-5.1s', duration: '10.6s', driftX: '-12px', driftY: '7px' },
+  { id: 3, left: '74%', top: '3%', size: '136px', rotate: '24deg', opacity: '0.17', delay: '-1.8s', duration: '11.2s', driftX: '-15px', driftY: '-7px' },
+  { id: 4, left: '88%', top: '19%', size: '112px', rotate: '-16deg', opacity: '0.16', delay: '-7.4s', duration: '10.2s', driftX: '10px', driftY: '7px' },
+  { id: 5, left: '-3%', top: '58%', size: '142px', rotate: '-34deg', opacity: '0.17', delay: '-3.7s', duration: '12.2s', driftX: '16px', driftY: '-8px' },
+  { id: 6, left: '18%', top: '79%', size: '102px', rotate: '20deg', opacity: '0.15', delay: '-6.3s', duration: '9.8s', driftX: '-10px', driftY: '6px' },
+  { id: 7, left: '60%', top: '77%', size: '128px', rotate: '26deg', opacity: '0.17', delay: '-2.2s', duration: '11.4s', driftX: '-14px', driftY: '-7px' },
+  { id: 8, left: '84%', top: '66%', size: '122px', rotate: '-22deg', opacity: '0.16', delay: '-4.8s', duration: '10.9s', driftX: '13px', driftY: '8px' },
+  { id: 9, left: '43%', top: '-3%', size: '110px', rotate: '-8deg', opacity: '0.15', delay: '-8.6s', duration: '10.4s', driftX: '9px', driftY: '-5px' },
+]
 let introAnimation: anime.JSAnimation | null = null
+let leafIntroAnimation: anime.JSAnimation | null = null
+
+function registryLeafStyle(leaf: RegistryLeafSprite): Record<string, string> {
+  return {
+    '--registry-leaf-left': leaf.left,
+    '--registry-leaf-top': leaf.top,
+    '--registry-leaf-size': leaf.size,
+    '--registry-leaf-rotate': leaf.rotate,
+    '--registry-leaf-opacity': leaf.opacity,
+    '--registry-leaf-delay': leaf.delay,
+    '--registry-leaf-duration': leaf.duration,
+    '--registry-leaf-drift-x': leaf.driftX,
+    '--registry-leaf-drift-y': leaf.driftY,
+  }
+}
 
 function startIntroAnimation() {
-  if (introAnimation) return
+  if (introAnimation || leafIntroAnimation) return
   const root = rootRef.value
   if (!root) return
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-  const nodes = root.querySelectorAll<HTMLElement>(
+  const contentNodes = root.querySelectorAll<HTMLElement>(
     '.registry-header, .registry-meta-pill, .registry-store-card, .registry-footer',
   )
-  if (!nodes.length) return
+  if (contentNodes.length) {
+    introAnimation = anime.animate(contentNodes, {
+      translateY: [14, 0],
+      duration: 860,
+      delay: anime.stagger(90, { from: 'first' }),
+      ease: 'outCubic',
+    })
+  }
 
-  introAnimation = anime.animate(nodes, {
-    opacity: [0, 1],
-    translateY: [14, 0],
-    duration: 860,
-    delay: anime.stagger(90, { from: 'first' }),
+  const leafNodes = root.querySelectorAll<HTMLElement>('.registry-leaf')
+  if (!leafNodes.length) return
+
+  leafIntroAnimation = anime.animate(leafNodes, {
+    translateY: [10, 0],
+    scale: [0.94, 1],
+    duration: 980,
+    delay: anime.stagger(56, { from: 'center' }),
     ease: 'outCubic',
   })
 }
@@ -110,7 +170,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   introAnimation?.pause()
+  leafIntroAnimation?.pause()
   introAnimation = null
+  leafIntroAnimation = null
 })
 </script>
 
@@ -136,6 +198,61 @@ onBeforeUnmount(() => {
     radial-gradient(circle at 66% 90%, rgba(var(--light-magenta-rgb), 0.16), transparent 50%);
 }
 
+.registry-leaf-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.registry-leaf {
+  position: absolute;
+  left: var(--registry-leaf-left);
+  top: var(--registry-leaf-top);
+  width: var(--registry-leaf-size);
+  opacity: var(--registry-leaf-opacity);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  animation: registry-leaf-breathe var(--registry-leaf-duration) ease-in-out infinite;
+  animation-delay: var(--registry-leaf-delay);
+}
+
+.registry-leaf img {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.76;
+  filter: grayscale(1) brightness(0.52) contrast(1.04);
+  transform-origin: 50% 50%;
+  animation: registry-leaf-wobble calc(var(--registry-leaf-duration) * 0.72) ease-in-out infinite alternate;
+}
+
+@keyframes registry-leaf-breathe {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(var(--registry-leaf-rotate)) scale(0.94);
+  }
+
+  50% {
+    transform: translate3d(var(--registry-leaf-drift-x), var(--registry-leaf-drift-y), 0)
+      rotate(calc(var(--registry-leaf-rotate) + 5deg)) scale(1.02);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--registry-leaf-rotate)) scale(0.94);
+  }
+}
+
+@keyframes registry-leaf-wobble {
+  0% {
+    transform: rotate(-3deg) scale(0.992);
+  }
+
+  100% {
+    transform: rotate(3deg) scale(1.014);
+  }
+}
+
 .registry-content {
   position: relative;
   z-index: 1;
@@ -153,6 +270,10 @@ onBeforeUnmount(() => {
 
 .registry-header-copy {
   max-width: 68ch;
+}
+
+.registry-header-copy .panel-title {
+  margin: 4px 0 10px;
 }
 
 .registry-eyebrow {
@@ -224,6 +345,7 @@ onBeforeUnmount(() => {
 
 .registry-grid {
   margin-inline: -6px;
+  align-items: flex-start;
 }
 
 .registry-grid :deep(.v-col) {
@@ -236,7 +358,6 @@ onBeforeUnmount(() => {
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  height: 100%;
   border-radius: 18px;
   border: 1px solid rgba(var(--panel-border-rgb), 0.44);
   padding: 18px;
@@ -347,8 +468,7 @@ onBeforeUnmount(() => {
 }
 
 .registry-store-actions {
-  margin-top: auto;
-  padding-top: 16px;
+  margin-top: 14px;
   display: grid;
   gap: 8px;
 }
@@ -380,6 +500,15 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 960px) {
+  .registry-leaf {
+    width: calc(var(--registry-leaf-size) * 0.82);
+    opacity: calc(var(--registry-leaf-opacity) * 0.84);
+  }
+
+  .registry-leaf:nth-child(n + 8) {
+    display: none;
+  }
+
   .registry-content {
     gap: 12px;
   }
@@ -417,6 +546,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 600px) {
+  .registry-leaf {
+    width: calc(var(--registry-leaf-size) * 0.7);
+  }
+
+  .registry-leaf:nth-child(n + 6) {
+    display: none;
+  }
+
   .registry-store-topline {
     align-items: flex-start;
     flex-direction: column;
@@ -433,11 +570,22 @@ onBeforeUnmount(() => {
   }
 
   .registry-store-actions {
-    padding-top: 12px;
+    margin-top: 12px;
   }
 
   .registry-store-note {
     font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registry-leaf,
+  .registry-leaf img {
+    animation: none !important;
+  }
+
+  .registry-leaf {
+    transform: translate3d(0, 0, 0) rotate(var(--registry-leaf-rotate)) scale(0.94);
   }
 }
 </style>

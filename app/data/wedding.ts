@@ -27,7 +27,10 @@ export const wedding = {
       // { code: 'EWR', name: 'Newark Liberty International Airport', note: 'Usually the quickest option to Eatontown (~45–60 min)' },
     ],
     hotels: [
-      { name: 'Sheraton Eatontown Hotel', url: 'https://www.marriott.com/en-us/hotels/ewres-sheraton-eatontown-hotel/overview/', note: 'Block code: TBD' },
+      { name: 'Sheraton Eatontown Hotel', 
+        url: 'https://www.marriott.com/event-reservations/reservation-link.mi?id=1774359058374&key=GRP&app=resvlink&_branch_match_id=1472615574208485672&_branch_referrer=H4sIAAAAAAAAA8soKSkottLXTywo0MtNLCrKzC8p0UvOz9UvSi3OyczLtgdK2ALZZSCOWmaKraG5uYmxqaWBqYWxuYladmqlrXtQgFpdUWpaKlB3Xnp8UlF%2BeXFqka1zRlF%2BbioAthjj%2B2AAAAA%3D', 
+        note: 'Reservation Cut off date is July 7th, 2026. Please book early!' 
+      },
     ],
     gettingAround: [
       'Uber/Lyft is widely available.',

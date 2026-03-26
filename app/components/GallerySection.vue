@@ -24,6 +24,18 @@
         </header>
 
         <div class="gallery-mosaic">
+          <div class="gallery-leaf-stream" aria-hidden="true">
+            <span
+              v-for="leaf in galleryLeafSprites"
+              :key="leaf.id"
+              class="gallery-leaf-stream-item"
+              :style="galleryLeafStyle(leaf)"
+            >
+              <span class="gallery-leaf-stream-wobble">
+                <img :src="galleryLeafSvgUrl" alt="" loading="lazy" decoding="async" />
+              </span>
+            </span>
+          </div>
           <button
             v-for="(photo, index) in mosaicPhotos"
             :key="photo.url"
@@ -191,6 +203,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as anime from 'animejs'
+import galleryLeafSvgUrl from '~/assets/svgs/3147334_1016.svg'
 import { wedding } from '~/data/wedding'
 
 const rootRef = ref<HTMLElement | null>(null)
@@ -211,6 +224,7 @@ const WHEEL_NAV_COOLDOWN_MS = 260
 const FILMSTRIP_INTERACTION_HOLD_MS = 540
 const FILMSTRIP_AUTO_SCROLL_LOCK_MS = 280
 let introAnimation: anime.JSAnimation | null = null
+let leafIntroAnimation: anime.JSAnimation | null = null
 let isWheelListenerBound = false
 let wheelAccumulatedDelta = 0
 let wheelAccumulatorResetTimer: number | null = null
@@ -236,6 +250,32 @@ const tilePattern = [
   'gallery-tile--wide',
 ] as const
 
+type GalleryLeafSprite = {
+  id: number
+  left: string
+  top: string
+  size: string
+  rotate: string
+  opacity: string
+  delay: string
+  duration: string
+  drift: string
+  wobble: string
+}
+
+const galleryLeafSprites: GalleryLeafSprite[] = [
+  { id: 1, left: '4%', top: '6%', size: '118px', rotate: '-24deg', opacity: '0.17', delay: '-2.2s', duration: '16.9s', drift: '26px', wobble: '11deg' },
+  { id: 2, left: '26%', top: '4%', size: '96px', rotate: '20deg', opacity: '0.16', delay: '-6.4s', duration: '15.8s', drift: '22px', wobble: '10deg' },
+  { id: 3, left: '52%', top: '3%', size: '106px', rotate: '-14deg', opacity: '0.15', delay: '-1.1s', duration: '15.1s', drift: '24px', wobble: '9deg' },
+  { id: 4, left: '78%', top: '5%', size: '112px', rotate: '24deg', opacity: '0.16', delay: '-8.1s', duration: '17.2s', drift: '30px', wobble: '12deg' },
+  { id: 5, left: '95%', top: '26%', size: '102px', rotate: '-20deg', opacity: '0.16', delay: '-3.9s', duration: '16.1s', drift: '23px', wobble: '10deg' },
+  { id: 6, left: '96%', top: '66%', size: '116px', rotate: '19deg', opacity: '0.16', delay: '-5.6s', duration: '16.4s', drift: '27px', wobble: '11deg' },
+  { id: 7, left: '74%', top: '94%', size: '110px', rotate: '-26deg', opacity: '0.16', delay: '-2.8s', duration: '15.6s', drift: '24px', wobble: '10deg' },
+  { id: 8, left: '43%', top: '95%', size: '102px', rotate: '12deg', opacity: '0.14', delay: '-7.3s', duration: '15.2s', drift: '20px', wobble: '9deg' },
+  { id: 9, left: '12%', top: '92%', size: '108px', rotate: '-18deg', opacity: '0.15', delay: '-4.7s', duration: '16.3s', drift: '25px', wobble: '11deg' },
+  { id: 10, left: '2%', top: '52%', size: '98px', rotate: '22deg', opacity: '0.15', delay: '-9.2s', duration: '15.9s', drift: '22px', wobble: '9deg' },
+]
+
 const photos = computed(() => wedding.gallery ?? [])
 const totalPhotos = computed(() => photos.value.length)
 const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(9, photos.value.length)))
@@ -251,6 +291,20 @@ const lightboxPreloadQueue = new Map<string, Promise<void>>()
 
 function tileClass(index: number): string {
   return tilePattern[index % tilePattern.length] ?? 'gallery-tile--small'
+}
+
+function galleryLeafStyle(leaf: GalleryLeafSprite): Record<string, string> {
+  return {
+    '--gallery-leaf-left': leaf.left,
+    '--gallery-leaf-top': leaf.top,
+    '--gallery-leaf-size': leaf.size,
+    '--gallery-leaf-rotate': leaf.rotate,
+    '--gallery-leaf-opacity': leaf.opacity,
+    '--gallery-leaf-delay': leaf.delay,
+    '--gallery-leaf-duration': leaf.duration,
+    '--gallery-leaf-drift': leaf.drift,
+    '--gallery-leaf-wobble': leaf.wobble,
+  }
 }
 
 function formatPhotoLabel(url: string, index: number): string {
@@ -584,19 +638,30 @@ function unbindWheelNavigation() {
 }
 
 function startIntroAnimation() {
-  if (introAnimation) return
+  if (introAnimation || leafIntroAnimation) return
   const root = rootRef.value
   if (!root) return
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-  const nodes = root.querySelectorAll<HTMLElement>('.gallery-header, .gallery-tile')
-  if (!nodes.length) return
+  const contentNodes = root.querySelectorAll<HTMLElement>('.gallery-header, .gallery-tile')
+  if (contentNodes.length) {
+    introAnimation = anime.animate(contentNodes, {
+      opacity: [0, 1],
+      translateY: [14, 0],
+      duration: 880,
+      delay: anime.stagger(45, { from: 'first' }),
+      ease: 'outCubic',
+    })
+  }
 
-  introAnimation = anime.animate(nodes, {
-    opacity: [0, 1],
-    translateY: [14, 0],
-    duration: 880,
-    delay: anime.stagger(45, { from: 'first' }),
+  const leafNodes = root.querySelectorAll<HTMLElement>('.gallery-leaf-stream-item')
+  if (!leafNodes.length) return
+
+  leafIntroAnimation = anime.animate(leafNodes, {
+    translateY: [10, 0],
+    scale: [0.94, 1],
+    duration: 980,
+    delay: anime.stagger(36, { from: 'center' }),
     ease: 'outCubic',
   })
 }
@@ -638,7 +703,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   introAnimation?.pause()
+  leafIntroAnimation?.pause()
   introAnimation = null
+  leafIntroAnimation = null
   unbindWheelNavigation()
   clearFilmstripInteractionState()
   window.removeEventListener('keydown', onWindowKeydown)
@@ -679,6 +746,10 @@ onBeforeUnmount(() => {
   max-width: 70ch;
   display: grid;
   gap: 8px;
+}
+
+.gallery-header .panel-title {
+  margin: 0;
 }
 
 .gallery-eyebrow {
@@ -733,14 +804,78 @@ onBeforeUnmount(() => {
 }
 
 .gallery-mosaic {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-auto-rows: 56px;
   gap: 10px;
 }
 
+.gallery-leaf-stream {
+  position: absolute;
+  inset: -8px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gallery-leaf-stream-item {
+  position: absolute;
+  left: var(--gallery-leaf-left);
+  top: var(--gallery-leaf-top);
+  width: var(--gallery-leaf-size);
+  opacity: var(--gallery-leaf-opacity);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  animation: gallery-leaf-drift var(--gallery-leaf-duration) ease-in-out infinite;
+  animation-delay: var(--gallery-leaf-delay);
+}
+
+.gallery-leaf-stream-wobble {
+  display: block;
+  width: 100%;
+  transform-origin: 50% 50%;
+  animation: gallery-leaf-wobble calc(var(--gallery-leaf-duration) * 0.44) ease-in-out infinite alternate;
+}
+
+.gallery-leaf-stream-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.74;
+  filter: grayscale(1) brightness(0.54) contrast(1.05);
+}
+
+@keyframes gallery-leaf-drift {
+  0% {
+    transform: translate3d(calc(-50% - var(--gallery-leaf-drift)), -50%, 0)
+      rotate(var(--gallery-leaf-rotate)) scale(0.92);
+  }
+
+  50% {
+    transform: translate3d(calc(-50% + var(--gallery-leaf-drift)), calc(-50% + 6px), 0)
+      rotate(calc(var(--gallery-leaf-rotate) + 7deg)) scale(1.03);
+  }
+
+  100% {
+    transform: translate3d(calc(-50% - var(--gallery-leaf-drift)), -50%, 0)
+      rotate(var(--gallery-leaf-rotate)) scale(0.92);
+  }
+}
+
+@keyframes gallery-leaf-wobble {
+  0% {
+    transform: rotate(calc(var(--gallery-leaf-wobble) * -1)) scale(0.99);
+  }
+
+  100% {
+    transform: rotate(var(--gallery-leaf-wobble)) scale(1.016);
+  }
+}
+
 .gallery-tile {
   position: relative;
+  z-index: 1;
   overflow: hidden;
   border: 1px solid rgba(var(--panel-border-rgb), 0.36);
   padding: 0;
@@ -998,6 +1133,19 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 960px) {
+  .gallery-leaf-stream {
+    inset: -4px;
+  }
+
+  .gallery-leaf-stream-item {
+    width: calc(var(--gallery-leaf-size) * 0.8);
+    opacity: calc(var(--gallery-leaf-opacity) * 0.82);
+  }
+
+  .gallery-leaf-stream-item:nth-child(n + 8) {
+    display: none;
+  }
+
   .gallery-toolbar {
     justify-content: flex-start;
   }
@@ -1088,6 +1236,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 560px) {
+  .gallery-leaf-stream-item {
+    width: calc(var(--gallery-leaf-size) * 0.65);
+  }
+
+  .gallery-leaf-stream-item:nth-child(n + 6) {
+    display: none;
+  }
+
   .gallery-lightbox-topbar {
     padding: 8px;
   }
@@ -1114,6 +1270,17 @@ onBeforeUnmount(() => {
 
   .gallery-thumb-placeholder {
     height: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-leaf-stream-item,
+  .gallery-leaf-stream-wobble {
+    animation: none !important;
+  }
+
+  .gallery-leaf-stream-item {
+    transform: translate3d(-50%, -50%, 0) rotate(var(--gallery-leaf-rotate)) scale(0.92);
   }
 }
 </style>

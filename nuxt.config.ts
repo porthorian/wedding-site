@@ -6,11 +6,16 @@ const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, 
 const withSiteUrl = (path: string) => (siteUrl ? `${siteUrl}${path}` : path)
 const canonicalUrl = withSiteUrl('/')
 const ogImageUrl = withSiteUrl('/social/og-image.jpg')
+const isProduction = process.env.NODE_ENV === 'production'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  sourcemap: {
+    client: true,
+    server: true,
+  },
   app: {
     head: {
       title: siteTitle,
@@ -49,6 +54,15 @@ export default defineNuxtConfig({
         { rel: 'canonical', href: canonicalUrl },
       ],
       script: [
+        ...(isProduction
+          ? [
+              {
+                src: 'https://analytics.pennylabs.com/api/script.js',
+                defer: true,
+                'data-site-id': '31c37d833bdd',
+              },
+            ]
+          : []),
         {
           type: 'application/ld+json',
           innerHTML: JSON.stringify({
@@ -103,12 +117,35 @@ export default defineNuxtConfig({
     transpile: ['vuetify'],
   },
   vite: {
+    build: {
+      cssMinify: 'lightningcss',
+      chunkSizeWarningLimit: 1200,
+    },
     ssr: {
       noExternal: ['vuetify'],
     },
   },
   hooks: {
     'vite:extendConfig': (config) => {
+      config.build = config.build || {}
+      config.build.rollupOptions = config.build.rollupOptions || {}
+      const existingOnWarn = config.build.rollupOptions.onwarn
+      config.build.rollupOptions.onwarn = (warning, warn) => {
+        const warningMessage = typeof warning === 'string' ? warning : (warning.message || '')
+        const warningCode = typeof warning === 'string' ? '' : (warning.code || '')
+        const warningPlugin = typeof warning === 'string' ? '' : (warning.plugin || '')
+        const isTailwindSourcemapWarning =
+          warningPlugin === '@tailwindcss/vite:generate:build' &&
+          (warningCode === 'SOURCEMAP_ERROR' || warningMessage.includes('Sourcemap is likely to be incorrect'))
+        if (isTailwindSourcemapWarning) return
+
+        if (typeof existingOnWarn === 'function') {
+          existingOnWarn(warning, warn)
+          return
+        }
+        warn(warning)
+      }
+
       // Ensure Vuetify auto-imports components in Vite/Nuxt.
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const vuetify = require('vite-plugin-vuetify').default
