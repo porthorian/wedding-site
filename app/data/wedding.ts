@@ -70,6 +70,10 @@ export const wedding = {
       accent: 'rgba(191, 153, 117, 0.28)',
     },
   ],
+  galleryPhotographer: {
+    name: 'Christina Lily',
+    url: 'https://www.christinalilly.com/',
+  },
   gallery: [
     { url: '/images/gallery/JoePalaiaEngagementSession133191.jpg' },
     { url: '/images/gallery/JoePalaiaEngagementSession133201.jpg' },

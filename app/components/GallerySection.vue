@@ -9,6 +9,18 @@
           <p class="muted gallery-intro">
             A few favorites from our engagement session. Tap any photo to open the full set.
           </p>
+          <p v-if="hasGalleryPhotographer" class="gallery-credit">
+            Photography by
+            <a
+              :href="galleryPhotographerUrl"
+              class="gallery-credit-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="galleryPhotographerAriaLabel"
+            >
+              {{ galleryPhotographerName }}
+            </a>
+          </p>
 
           <div class="gallery-toolbar">
             <v-btn
@@ -45,17 +57,20 @@
             :aria-label="`Open ${photoLabel(index)} in gallery`"
             @click="openLightbox(index)"
           >
-            <NuxtImg
-              :src="encodedPhotoUrl(photo.url)"
-              :alt="photoLabel(index)"
-              class="gallery-tile-image"
-              sizes="sm:50vw lg:28vw xl:24vw"
-              :loading="index === 0 ? 'eager' : 'lazy'"
-              :fetchpriority="index === 0 ? 'high' : 'auto'"
-              decoding="async"
-              fit="cover"
-              :quality="78"
-            />
+            <picture class="gallery-tile-picture">
+              <source
+                :srcset="optimizedPhotoUrl(photo.url, 'mosaic', 'webp')"
+                type="image/webp"
+              />
+              <img
+                :src="optimizedPhotoUrl(photo.url, 'mosaic', 'jpg')"
+                :alt="photoLabel(index)"
+                class="gallery-tile-image"
+                :loading="index === 0 ? 'eager' : 'lazy'"
+                :fetchpriority="index === 0 ? 'high' : 'auto'"
+                decoding="async"
+              />
+            </picture>
             <span v-if="index === 0" class="gallery-tile-feature">Featured</span>
             <span class="gallery-tile-index">{{ String(index + 1).padStart(2, '0') }}</span>
             <span
@@ -72,11 +87,25 @@
     <v-dialog v-model="isLightboxOpen" max-width="1280" scroll-strategy="block">
       <v-card class="gallery-lightbox-shell" elevation="0">
         <div class="gallery-lightbox-topbar">
-          <div class="gallery-lightbox-counter">
-            {{ String(galleryIndex + 1).padStart(2, '0') }} / {{ String(totalPhotos).padStart(2, '0') }}
+          <div class="gallery-lightbox-meta">
+            <div class="gallery-lightbox-counter">
+              {{ String(galleryIndex + 1).padStart(2, '0') }} / {{ String(totalPhotos).padStart(2, '0') }}
+            </div>
+            <p v-if="hasGalleryPhotographer" class="gallery-lightbox-credit">
+              Photography by
+              <a
+                :href="galleryPhotographerUrl"
+                class="gallery-lightbox-credit-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="galleryPhotographerAriaLabel"
+              >
+                {{ galleryPhotographerName }}
+              </a>
+            </p>
           </div>
           <v-btn
-            class="text-none"
+            class="text-none gallery-lightbox-close-btn"
             color="primary"
             variant="text"
             @click="isLightboxOpen = false"
@@ -123,22 +152,27 @@
               We could not load this photo.
             </div>
             <Transition name="gallery-lightbox-fade" mode="out-in">
-              <NuxtImg
-                v-if="activePhotoSrc"
-                :key="activePhotoSrc"
-                :src="activePhotoSrc"
-                :alt="photoLabel(galleryIndex)"
-                class="gallery-lightbox-image"
-                sizes="sm:92vw lg:78vw"
-                loading="eager"
-                decoding="async"
-                fetchpriority="high"
-                fit="contain"
-                :quality="84"
-                :data-image-token="activeImageToken"
-                @load="onActiveImageLoad"
-                @error="onActiveImageError"
-              />
+              <picture
+                v-if="activePhotoJpgSrc"
+                :key="activePhotoPreloadSrc"
+                class="gallery-lightbox-picture"
+              >
+                <source
+                  :srcset="activePhotoWebpSrc"
+                  type="image/webp"
+                />
+                <img
+                  :src="activePhotoJpgSrc"
+                  :alt="photoLabel(galleryIndex)"
+                  class="gallery-lightbox-image"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                  :data-image-token="activeImageToken"
+                  @load="onActiveImageLoad"
+                  @error="onActiveImageError"
+                />
+              </picture>
             </Transition>
           </div>
 
@@ -176,18 +210,24 @@
             @focus="warmSupplementalLightboxPhoto(index)"
             @click="selectPhoto(index)"
           >
-            <NuxtImg
+            <picture
               v-if="isLightboxThumbsReady"
-              :src="encodedPhotoUrl(photo.url)"
-              :alt="photoLabel(index)"
-              class="gallery-thumb-image"
-              width="92"
-              height="72"
-              loading="lazy"
-              decoding="async"
-              fit="cover"
-              :quality="68"
-            />
+              class="gallery-thumb-picture"
+            >
+              <source
+                :srcset="optimizedPhotoUrl(photo.url, 'thumb', 'webp')"
+                type="image/webp"
+              />
+              <img
+                :src="optimizedPhotoUrl(photo.url, 'thumb', 'jpg')"
+                :alt="photoLabel(index)"
+                class="gallery-thumb-image"
+                width="92"
+                height="72"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
             <div
               v-else
               class="gallery-thumb-placeholder"
@@ -215,14 +255,13 @@ const hasActiveImageError = ref(false)
 const isLightboxThumbsReady = ref(false)
 const canLoadSupplementalLightboxAssets = ref(false)
 const activeImageToken = ref(0)
-const imageBuilder = useImage()
+const supportsWebP = ref(detectWebPSupport())
 const LIGHTBOX_PRELOAD_RADIUS = 1
-const LIGHTBOX_PRELOAD_WIDTH = 1920
-const LIGHTBOX_PRELOAD_QUALITY = 82
 const WHEEL_NAV_TRIGGER_DELTA = 44
 const WHEEL_NAV_COOLDOWN_MS = 260
 const FILMSTRIP_INTERACTION_HOLD_MS = 540
 const FILMSTRIP_AUTO_SCROLL_LOCK_MS = 280
+const GALLERY_OPTIMIZED_ROOT = '/images/gallery/optimized'
 let introAnimation: anime.JSAnimation | null = null
 let leafIntroAnimation: anime.JSAnimation | null = null
 let isWheelListenerBound = false
@@ -263,6 +302,9 @@ type GalleryLeafSprite = {
   wobble: string
 }
 
+type GalleryImageTier = 'thumb' | 'mosaic' | 'lightbox'
+type GalleryImageFormat = 'webp' | 'jpg'
+
 const galleryLeafSprites: GalleryLeafSprite[] = [
   { id: 1, left: '4%', top: '6%', size: '118px', rotate: '-24deg', opacity: '0.17', delay: '-2.2s', duration: '16.9s', drift: '26px', wobble: '11deg' },
   { id: 2, left: '26%', top: '4%', size: '96px', rotate: '20deg', opacity: '0.16', delay: '-6.4s', duration: '15.8s', drift: '22px', wobble: '10deg' },
@@ -280,11 +322,23 @@ const photos = computed(() => wedding.gallery ?? [])
 const totalPhotos = computed(() => photos.value.length)
 const mosaicPhotos = computed(() => photos.value.slice(0, Math.min(9, photos.value.length)))
 const hiddenPhotoCount = computed(() => Math.max(0, totalPhotos.value - mosaicPhotos.value.length))
-const activePhoto = computed(() => photos.value[galleryIndex.value] ?? null)
-const activePhotoSrc = computed(() => {
-  if (!activePhoto.value) return ''
-  return encodedPhotoUrl(activePhoto.value.url)
+const activePhotoSources = computed(() => lightboxSourcesAt(galleryIndex.value))
+const activePhotoWebpSrc = computed(() => activePhotoSources.value.webp)
+const activePhotoJpgSrc = computed(() => activePhotoSources.value.jpg)
+const activePhotoPreloadSrc = computed(() => activePhotoSources.value.preferred)
+const galleryPhotographer = computed(() => {
+  const entry = wedding.galleryPhotographer
+  if (!entry?.name || !entry?.url) return null
+  return entry
 })
+const hasGalleryPhotographer = computed(() => galleryPhotographer.value !== null)
+const galleryPhotographerName = computed(() => galleryPhotographer.value?.name ?? '')
+const galleryPhotographerUrl = computed(() => galleryPhotographer.value?.url ?? '')
+const galleryPhotographerAriaLabel = computed(() => (
+  galleryPhotographer.value
+    ? `Visit photographer ${galleryPhotographer.value.name} website (opens in a new tab)`
+    : ''
+))
 const photoLabels = computed(() => photos.value.map((photo, index) => formatPhotoLabel(photo.url, index)))
 const preloadedLightboxSources = new Set<string>()
 const lightboxPreloadQueue = new Map<string, Promise<void>>()
@@ -317,17 +371,29 @@ function photoLabel(index: number): string {
   return photoLabels.value[index] ?? `Photo ${index + 1}`
 }
 
-function encodedPhotoUrl(url: string): string {
-  return encodeURI(url)
+function detectWebPSupport(): boolean {
+  if (!import.meta.client) return false
+  try {
+    const canvas = document.createElement('canvas')
+    return canvas.toDataURL('image/webp').startsWith('data:image/webp')
+  } catch {
+    return false
+  }
 }
 
-function lightboxPreloadUrl(url: string): string {
-  const encodedUrl = encodedPhotoUrl(url)
-  return imageBuilder(encodedUrl, {
-    width: LIGHTBOX_PRELOAD_WIDTH,
-    quality: LIGHTBOX_PRELOAD_QUALITY,
-    fit: 'contain',
-  })
+function photoBaseName(url: string): string {
+  const fileName = decodeURIComponent(url.split('/').pop()?.split('?')[0] ?? '')
+  return fileName.replace(/\.[a-z0-9]+$/i, '').trim()
+}
+
+function optimizedPhotoUrl(
+  url: string,
+  tier: GalleryImageTier,
+  format: GalleryImageFormat,
+): string {
+  const baseName = photoBaseName(url)
+  if (!baseName) return ''
+  return encodeURI(`${GALLERY_OPTIMIZED_ROOT}/${tier}/${baseName}.${format}`)
 }
 
 function toCircularIndex(index: number): number {
@@ -335,12 +401,22 @@ function toCircularIndex(index: number): number {
   return (index % totalPhotos.value + totalPhotos.value) % totalPhotos.value
 }
 
-function lightboxSrcAt(index: number): string {
-  if (!totalPhotos.value) return ''
+function lightboxSourcesAt(index: number): { webp: string, jpg: string, preferred: string } {
+  if (!totalPhotos.value) return { webp: '', jpg: '', preferred: '' }
   const normalizedIndex = toCircularIndex(index)
   const entry = photos.value[normalizedIndex]
-  if (!entry) return ''
-  return lightboxPreloadUrl(entry.url)
+  if (!entry) return { webp: '', jpg: '', preferred: '' }
+  const webp = optimizedPhotoUrl(entry.url, 'lightbox', 'webp')
+  const jpg = optimizedPhotoUrl(entry.url, 'lightbox', 'jpg')
+  return {
+    webp,
+    jpg,
+    preferred: supportsWebP.value ? webp : jpg,
+  }
+}
+
+function lightboxSrcAt(index: number): string {
+  return lightboxSourcesAt(index).preferred
 }
 
 function currentEventToken(event: Event): number {
@@ -679,7 +755,7 @@ watch(isLightboxOpen, (open) => {
   bindWheelNavigation()
   isLightboxThumbsReady.value = false
   canLoadSupplementalLightboxAssets.value = false
-  beginActiveImageLoad(activePhotoSrc.value)
+  beginActiveImageLoad(activePhotoPreloadSrc.value)
   void nextTick(() => {
     ensureActiveThumbVisible({ force: true, behavior: 'auto' })
   })
@@ -690,7 +766,7 @@ watch(galleryIndex, () => {
   ensureActiveThumbVisible()
 })
 
-watch(activePhotoSrc, (source) => {
+watch(activePhotoPreloadSrc, (source) => {
   if (!isLightboxOpen.value) return
   beginActiveImageLoad(source)
 })
@@ -762,6 +838,37 @@ onBeforeUnmount(() => {
 
 .gallery-intro {
   margin: 0;
+}
+
+.gallery-credit {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: rgba(var(--ink-muted-rgb), 0.82);
+}
+
+.gallery-credit-link,
+.gallery-lightbox-credit-link {
+  color: rgba(var(--ink-rgb), 0.9);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--ink-rgb), 0.42);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: color 180ms ease, text-decoration-color 180ms ease;
+}
+
+.gallery-credit-link:hover,
+.gallery-lightbox-credit-link:hover {
+  color: rgba(var(--ink-rgb), 0.98);
+  text-decoration-color: rgba(var(--ink-rgb), 0.72);
+}
+
+.gallery-credit-link:focus-visible,
+.gallery-lightbox-credit-link:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.72);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .gallery-toolbar {
@@ -895,6 +1002,12 @@ onBeforeUnmount(() => {
   transform: scale(1.06);
 }
 
+.gallery-tile-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .gallery-tile-image {
   display: block;
   width: 100%;
@@ -985,9 +1098,16 @@ onBeforeUnmount(() => {
 .gallery-lightbox-topbar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   padding: 8px 10px;
   border-bottom: 1px solid rgba(var(--panel-border-rgb), 0.2);
+}
+
+.gallery-lightbox-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
 .gallery-lightbox-counter {
@@ -995,6 +1115,17 @@ onBeforeUnmount(() => {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(var(--ink-muted-rgb), 0.82);
+}
+
+.gallery-lightbox-credit {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(var(--ink-muted-rgb), 0.82);
+}
+
+:deep(.gallery-lightbox-close-btn.v-btn) {
+  flex-shrink: 0;
 }
 
 .gallery-lightbox-main {
@@ -1015,6 +1146,12 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   overflow: hidden;
+}
+
+.gallery-lightbox-picture {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .gallery-lightbox-image {
@@ -1110,6 +1247,12 @@ onBeforeUnmount(() => {
   opacity: 0.72;
   cursor: pointer;
   padding: 0;
+}
+
+.gallery-thumb-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .gallery-thumb-image {
@@ -1236,6 +1379,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 560px) {
+  .gallery-credit {
+    font-size: 12px;
+  }
+
   .gallery-leaf-stream-item {
     width: calc(var(--gallery-leaf-size) * 0.65);
   }
@@ -1246,6 +1393,21 @@ onBeforeUnmount(() => {
 
   .gallery-lightbox-topbar {
     padding: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gallery-lightbox-meta {
+    flex: 1 1 100%;
+  }
+
+  .gallery-lightbox-credit {
+    font-size: 11px;
+  }
+
+  :deep(.gallery-lightbox-close-btn.v-btn) {
+    margin-left: auto;
   }
 
   .gallery-lightbox-image-wrap {
