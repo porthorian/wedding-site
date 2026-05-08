@@ -11,6 +11,11 @@ updates:
     commit-message:
       prefix: "deps"
     open-pull-requests-limit: 10
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
