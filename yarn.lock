@@ -4231,10 +4231,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"animejs@npm:^4.3.5":
-  version: 4.3.5
-  resolution: "animejs@npm:4.3.5"
-  checksum: 10/270b3751040662c2e3c411273fe094e619596c9d1ff399077307de285065ed15d7fc2cdd4aab6d40f6cd5ed88d1ef538c01f57301fb6c7e46515304627f13267
+"animejs@npm:^4.4.1":
+  version: 4.4.1
+  resolution: "animejs@npm:4.4.1"
+  checksum: 10/57c33f1d146e8b4cf7362aa8c273d1ab708058e9bdc9e3fdfe39f2e443193ba49e9b6483c222e81acb1cc922194fc88b5421ba6f3e4e969717d440c396598643
   languageName: node
   linkType: hard
 
@@ -7429,7 +7429,7 @@ __metadata:
     "@nuxt/image": "npm:2.0.0"
     "@nuxt/ui": "npm:4.6.0"
     "@types/node": "npm:^25.6.0"
-    animejs: "npm:^4.3.5"
+    animejs: "npm:^4.4.1"
     nuxt: "npm:^4.4.2"
     typescript: "npm:^6.0.2"
     vite: "npm:^8.0.1"
