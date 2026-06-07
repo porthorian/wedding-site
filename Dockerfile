@@ -1,4 +1,4 @@
-FROM node:26.1-alpine AS builder
+FROM node:26.3-alpine AS builder
 WORKDIR /app
 
 # Use Corepack and pin Yarn to match project lockfile/tooling
@@ -20,7 +20,7 @@ COPY . .
 RUN yarn build || (echo "BUILD FAILED - dumping yarn build.log(s) if present" && \
  for f in /tmp/xfs-*/*/build.log /tmp/xfs-*/build.log; do [ -f "$f" ] && (echo "--- $f ---" && sed -n '1,200p' "$f"); done; false)
 
-FROM node:26.1-alpine AS runner
+FROM node:26.3-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
