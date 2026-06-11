@@ -64,7 +64,10 @@ export async function verifyRecaptchaToken(event: H3Event, token: string): Promi
       signal: controller.signal,
     })
 
-    if (!response.ok) return { ok: false, reason: 'http_error' }
+    if (!response.ok) {
+      console.error(`[recaptcha] siteverify returned HTTP ${response.status}`)
+      return { ok: false, reason: 'http_error' }
+    }
 
     const data = (await response.json()) as RecaptchaSiteVerifyResponse
     if (data?.success !== true) {
@@ -96,7 +99,8 @@ export async function verifyRecaptchaToken(event: H3Event, token: string): Promi
       hostname: typeof data.hostname === 'string' ? data.hostname : undefined,
       challengeTs: typeof data.challenge_ts === 'string' ? data.challenge_ts : undefined,
     }
-  } catch {
+  } catch (err) {
+    console.error('[recaptcha] network error contacting siteverify:', err)
     return { ok: false, reason: 'network_error' }
   } finally {
     clearTimeout(timeout)
