@@ -30,8 +30,30 @@ yarn build
 yarn preview
 ```
 
+## RSVP sheet
+
+The RSVP flow reads and updates one Google Sheets worksheet. Share the sheet with the configured service account
+and provide the env vars shown in `.env.example`.
+
+Required worksheet columns:
+
+- `First Name`
+- `Last Name`
+- `ZIP Code`
+- `Named Guests Count`
+- `Guests Eligible`
+- `Will Attend`
+- `Guests Attending`
+- `Guests Names`
+- `Submitted At`
+- `Updated At`
+
+`Named Guests Count` is the number of people named on the invitation. `Guests Eligible` is the number of
+additional guests allowed. `Guests Attending` stores the total attending count.
+
 ## Notes
 
 - Main page: `app/pages/index.vue`
+- RSVP page: `app/pages/rsvp.vue`
 - Vuetify plugin: `plugins/vuetify.ts`
 - Global styles: `assets/styles/main.css`

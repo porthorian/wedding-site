@@ -93,6 +93,8 @@ export default defineNuxtConfig({
     googleSheets: {
       spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
       worksheetName: process.env.GOOGLE_SHEETS_WORKSHEET_NAME || 'RSVPs',
+      clientEmail: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+      privateKey: process.env.GOOGLE_SHEETS_PRIVATE_KEY,
     },
     public: {
       recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || '',

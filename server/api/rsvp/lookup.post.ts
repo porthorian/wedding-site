@@ -1,28 +1,23 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import {
+  findRsvpGuest,
   GoogleSheetsConfigError,
   GoogleSheetsRequestError,
   GoogleSheetsSchemaError,
-  RsvpGuestValidationError,
   RsvpGuestDuplicateError,
   RsvpGuestNotFoundError,
-  updateRsvpGuest,
-  type WillAttend,
-} from '../services/googleSheets'
-import { verifyRecaptchaToken } from '../services/recaptcha'
+} from '../../services/googleSheets'
+import { verifyRecaptchaToken } from '../../services/recaptcha'
 
-type RsvpRequestBody = {
+type RsvpLookupRequestBody = {
   fullName?: unknown
   zipCode?: unknown
-  willAttend?: unknown
-  guestsAttending?: unknown
-  guestNames?: unknown
   captchaToken?: unknown
 }
 
 function readStringField(
-  body: RsvpRequestBody,
-  field: keyof RsvpRequestBody,
+  body: RsvpLookupRequestBody,
+  field: keyof RsvpLookupRequestBody,
   opts: { required?: boolean; maxLen: number }
 ): string | undefined {
   const value = body[field]
@@ -47,60 +42,6 @@ function readStringField(
   }
 
   return trimmed
-}
-
-function readWillAttendField(body: RsvpRequestBody): WillAttend {
-  const value = body.willAttend
-  if (typeof value === 'boolean') return value ? 'yes' : 'no'
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    if (normalized === 'yes' || normalized === 'no') return normalized
-  }
-
-  throw createError({ statusCode: 400, statusMessage: 'willAttend must be "yes" or "no"' })
-}
-
-function readGuestsAttendingField(body: RsvpRequestBody, willAttend: WillAttend): number {
-  if (willAttend === 'no') return 0
-
-  const value = body.guestsAttending
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value
-
-  if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
-    const parsed = Number(value.trim())
-    if (Number.isSafeInteger(parsed)) return parsed
-  }
-
-  throw createError({ statusCode: 400, statusMessage: 'guestsAttending must be a non-negative whole number' })
-}
-
-function readGuestNamesField(body: RsvpRequestBody): string[] {
-  const value = body.guestNames
-  if (value == null) return []
-
-  if (!Array.isArray(value)) {
-    throw createError({ statusCode: 400, statusMessage: 'guestNames must be an array' })
-  }
-
-  const names = value.map((name, index) => {
-    if (typeof name !== 'string') {
-      throw createError({ statusCode: 400, statusMessage: `guestNames[${index}] must be a string` })
-    }
-
-    const trimmed = name.trim().replace(/\s+/g, ' ')
-    if (!trimmed) {
-      throw createError({ statusCode: 400, statusMessage: 'Please enter a name for each additional guest' })
-    }
-
-    if (trimmed.length > 120) {
-      throw createError({ statusCode: 400, statusMessage: 'Each additional guest name must be 120 characters or fewer' })
-    }
-
-    return trimmed
-  })
-
-  return names
 }
 
 function captchaError(captcha: Awaited<ReturnType<typeof verifyRecaptchaToken>>): never {
@@ -142,10 +83,6 @@ function sheetsError(err: unknown): never {
     throw createError({ statusCode: 409, statusMessage: err.message })
   }
 
-  if (err instanceof RsvpGuestValidationError) {
-    throw createError({ statusCode: 400, statusMessage: err.message })
-  }
-
   if (err instanceof GoogleSheetsRequestError) {
     throw createError({ statusCode: 502, statusMessage: err.message })
   }
@@ -159,31 +96,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
   }
 
-  const body = (await readBody(event)) as RsvpRequestBody
-
+  const body = (await readBody(event)) as RsvpLookupRequestBody
   const captchaToken = readStringField(body, 'captchaToken', { required: false, maxLen: 4096 }) || ''
   const fullName = readStringField(body, 'fullName', { required: true, maxLen: 160 })!
   const zipCode = readStringField(body, 'zipCode', { required: false, maxLen: 20 })
-  const willAttend = readWillAttendField(body)
-  const guestsAttending = readGuestsAttendingField(body, willAttend)
-  const guestNames = willAttend === 'yes' ? readGuestNamesField(body) : []
 
   const captcha = await verifyRecaptchaToken(event, captchaToken)
   if (!captcha.ok) captchaError(captcha)
 
   try {
-    const guest = await updateRsvpGuest(event, {
-      fullName,
-      zipCode,
-      willAttend,
-      guestsAttending,
-      guestNames,
-      submittedAtISO: new Date().toISOString(),
-    })
+    const guest = await findRsvpGuest(event, { fullName, zipCode })
 
     return {
       ok: true,
-      stored: true,
       guest,
       captcha: {
         bypassed: captcha.bypassed === true,

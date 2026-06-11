@@ -55,6 +55,26 @@
         </v-lazy>
       </section>
 
+      <section id="faq" class="landing-section">
+        <v-lazy
+          v-model="lazyActive.faq"
+          :options="{ threshold: 0.5 }"
+          transition="fade-transition"
+        >
+          <FaqSection />
+        </v-lazy>
+      </section>
+
+      <section id="rsvp" class="landing-section">
+        <v-lazy
+          v-model="lazyActive.rsvp"
+          :options="{ threshold: 0.5 }"
+          transition="fade-transition"
+        >
+          <RsvpSection />
+        </v-lazy>
+      </section>
+
       <section id="footer" class="landing-section landing-section--footer">
         <v-lazy
           v-model="lazyActive.footer"
@@ -64,16 +84,6 @@
           <FooterSection />
         </v-lazy>
       </section>
-
-      <!-- <section id="rsvp" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.rsvp"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <RsvpSection />
-        </v-lazy>
-      </section> -->
     </v-container>
   </section>
 </template>
@@ -99,13 +109,14 @@ const lazyActive = reactive({
   schedule: false,
   travel: false,
   gallery: false,
+  faq: false,
   registry: false,
   footer: false,
   rsvp: false,
 })
 
 const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
-const sectionIdsInOrder = ['hero', 'schedule', 'travel', 'registry', 'gallery', 'footer'] as const
+const sectionIdsInOrder = ['hero', 'schedule', 'travel', 'registry', 'gallery', 'faq', 'rsvp', 'footer'] as const
 const scrollableSectionIds = new Set<string>(sectionIdsInOrder)
 let scrollHashSyncRaf: number | null = null
 let suppressScrollHashSync = false

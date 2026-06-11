@@ -70,6 +70,28 @@ export const wedding = {
       accent: 'rgba(191, 153, 117, 0.28)',
     },
   ],
+  faq: [
+    {
+      question: 'What should I wear?',
+      answer: 'Dress Code is Summer Formal, for women this means long or short gowens in bright summer colors and for men this means a suit or dress pants with a button down shirt, jacket and tie. Please no jeans, khakis, or cargo pants... Cocktail hour will be outside.',
+    },
+    {
+      question: 'Where should I go between the ceremony and cocktail hour?',
+      answer: 'The Lobby of the TillingHouse will be open for guests to go to hangout until Cocktail Hour begins at 6pm. ',
+    },
+    {
+      question: 'Where is the ceremony?',
+      answer: 'The ceremony is at St. Mary of the Assumption Roman Catholic Church in Deal, NJ.',
+    },
+    {
+      question: 'Where is the reception?',
+      answer: 'Cocktail hour begins at 6:00 PM at The TillingHouse in Eatontown, NJ, followed by the reception at 7:00 PM.',
+    },
+    {
+      question: 'Is there a hotel block?',
+      answer: 'Yes. We have a room block at the Sheraton Eatontown Hotel. The reservation cutoff date is July 7, 2026.',
+    },
+  ],
   galleryPhotographer: {
     name: 'Christina Lily',
     url: 'https://www.christinalilly.com/',
