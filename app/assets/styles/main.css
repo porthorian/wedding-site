@@ -1085,6 +1085,7 @@ h3 {
 .rsvp-vine {
   width: min(520px, 100%);
   height: clamp(86px, 13vw, 120px);
+  margin-inline: auto;
   overflow: hidden;
   opacity: 0.9;
 }
