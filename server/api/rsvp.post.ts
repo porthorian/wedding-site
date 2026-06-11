@@ -16,6 +16,7 @@ type RsvpRequestBody = {
   zipCode?: unknown
   willAttend?: unknown
   guestsAttending?: unknown
+  attendingNamedGuests?: unknown
   guestNames?: unknown
   captchaToken?: unknown
 }
@@ -75,32 +76,30 @@ function readGuestsAttendingField(body: RsvpRequestBody, willAttend: WillAttend)
   throw createError({ statusCode: 400, statusMessage: 'guestsAttending must be a non-negative whole number' })
 }
 
-function readGuestNamesField(body: RsvpRequestBody): string[] {
-  const value = body.guestNames
+function readStringArrayField(body: RsvpRequestBody, field: 'guestNames' | 'attendingNamedGuests'): string[] {
+  const value = body[field]
   if (value == null) return []
 
   if (!Array.isArray(value)) {
-    throw createError({ statusCode: 400, statusMessage: 'guestNames must be an array' })
+    throw createError({ statusCode: 400, statusMessage: `${field} must be an array` })
   }
 
-  const names = value.map((name, index) => {
+  return value.map((name, index) => {
     if (typeof name !== 'string') {
-      throw createError({ statusCode: 400, statusMessage: `guestNames[${index}] must be a string` })
+      throw createError({ statusCode: 400, statusMessage: `${field}[${index}] must be a string` })
     }
 
     const trimmed = name.trim().replace(/\s+/g, ' ')
     if (!trimmed) {
-      throw createError({ statusCode: 400, statusMessage: 'Please enter a name for each additional guest' })
+      throw createError({ statusCode: 400, statusMessage: `Each entry in ${field} must be a non-empty string` })
     }
 
     if (trimmed.length > 120) {
-      throw createError({ statusCode: 400, statusMessage: 'Each additional guest name must be 120 characters or fewer' })
+      throw createError({ statusCode: 400, statusMessage: `Each entry in ${field} must be 120 characters or fewer` })
     }
 
     return trimmed
   })
-
-  return names
 }
 
 function captchaError(captcha: Awaited<ReturnType<typeof verifyRecaptchaToken>>): never {
@@ -166,7 +165,8 @@ export default defineEventHandler(async (event) => {
   const zipCode = readStringField(body, 'zipCode', { required: false, maxLen: 20 })
   const willAttend = readWillAttendField(body)
   const guestsAttending = readGuestsAttendingField(body, willAttend)
-  const guestNames = willAttend === 'yes' ? readGuestNamesField(body) : []
+  const attendingNamedGuests = willAttend === 'yes' ? readStringArrayField(body, 'attendingNamedGuests') : []
+  const guestNames = willAttend === 'yes' ? readStringArrayField(body, 'guestNames') : []
 
   const captcha = await verifyRecaptchaToken(event, captchaToken)
   if (!captcha.ok) captchaError(captcha)
@@ -177,6 +177,7 @@ export default defineEventHandler(async (event) => {
       zipCode,
       willAttend,
       guestsAttending,
+      attendingNamedGuests,
       guestNames,
       submittedAtISO: new Date().toISOString(),
     })

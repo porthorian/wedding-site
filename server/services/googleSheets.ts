@@ -44,6 +44,7 @@ export type RsvpGuest = {
   firstName: string
   lastName: string
   displayName: string
+  namedGuests: string[]
   namedGuestsCount: number
   extraGuestsAllowed: number
   totalGuestCapacity: number
@@ -55,6 +56,7 @@ export type RsvpGuest = {
 export type RsvpUpdateInput = RsvpLookupInput & {
   willAttend: WillAttend
   guestsAttending: number
+  attendingNamedGuests: string[]
   guestNames: string[]
   submittedAtISO: string
 }
@@ -357,10 +359,29 @@ function cell(row: string[], index: number): string {
   return typeof row[index] === 'string' ? row[index].trim() : ''
 }
 
+function buildDisplayName(firstName: string, lastName: string): string {
+  const firstParts = firstName.split('&').map(s => s.trim()).filter(Boolean)
+  const lastParts = lastName.split('&').map(s => s.trim()).filter(Boolean)
+  if (firstParts.length > 0 && firstParts.length === lastParts.length) {
+    return firstParts.map((f, i) => `${f} ${lastParts[i]}`).join(' & ')
+  }
+  return [firstName, lastName].filter(Boolean).join(' ').trim()
+}
+
+function parseNamedGuests(firstName: string, lastName: string): string[] {
+  const firstParts = firstName.split('&').map(s => s.trim()).filter(Boolean)
+  const lastParts = lastName.split('&').map(s => s.trim()).filter(Boolean)
+  if (firstParts.length > 0 && firstParts.length === lastParts.length) {
+    return firstParts.map((f, i) => `${f} ${lastParts[i]}`.trim())
+  }
+  return [buildDisplayName(firstName, lastName)].filter(Boolean)
+}
+
 function mapGuest(row: string[], columns: Record<RequiredColumn, number>): RsvpGuest {
   const firstName = cell(row, columns['First Name'])
   const lastName = cell(row, columns['Last Name'])
-  const displayName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const displayName = buildDisplayName(firstName, lastName)
+  const namedGuests = parseNamedGuests(firstName, lastName)
   const namedGuestsCount = parseNamedGuestsCount(cell(row, columns['Named Guests Count']))
   const extraGuestsAllowed = parseNonNegativeInteger(cell(row, columns['Guests Eligible']))
   const totalGuestCapacity = namedGuestsCount + extraGuestsAllowed
@@ -369,6 +390,7 @@ function mapGuest(row: string[], columns: Record<RequiredColumn, number>): RsvpG
     firstName,
     lastName,
     displayName,
+    namedGuests,
     namedGuestsCount,
     extraGuestsAllowed,
     totalGuestCapacity,
@@ -470,8 +492,11 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
   const now = input.submittedAtISO
   const willAttend = input.willAttend
   const guestsAttending = willAttend === 'yes' ? input.guestsAttending : 0
-  const guestNames = willAttend === 'yes' ? input.guestNames.map((name) => name.trim().replace(/\s+/g, ' ')) : []
+  const cleanName = (name: string) => name.trim().replace(/\s+/g, ' ')
+  const guestNames = willAttend === 'yes' ? input.guestNames.map(cleanName) : []
+  const attendingNamedGuests = willAttend === 'yes' ? input.attendingNamedGuests.map(cleanName) : []
   const additionalGuestsAttending = Math.max(0, guestsAttending - guest.namedGuestsCount)
+  const partialNamedAttending = guestsAttending < guest.namedGuestsCount
   const submittedAt = cell(match.row, rows.columns['Submitted At']) || now
 
   if (!Number.isSafeInteger(guestsAttending) || guestsAttending < 0) {
@@ -486,6 +511,10 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     throw new RsvpGuestValidationError('That response includes more guests than your invitation allows.')
   }
 
+  if (partialNamedAttending && attendingNamedGuests.length !== guestsAttending) {
+    throw new RsvpGuestValidationError('Please select which guests will be attending.')
+  }
+
   if (guestNames.length !== additionalGuestsAttending) {
     throw new RsvpGuestValidationError('Please enter a name for each additional guest.')
   }
@@ -495,10 +524,12 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     throw new RsvpGuestValidationError('Each additional guest name must be 120 characters or fewer.')
   }
 
+  const allGuestNames = [...attendingNamedGuests, ...guestNames]
+
   const updates: Array<{ column: RequiredColumn; value: string }> = [
     { column: 'Will Attend', value: willAttend },
     { column: 'Guests Attending', value: String(guestsAttending) },
-    { column: 'Guests Names', value: guestNames.join('\n') },
+    { column: 'Guests Names', value: allGuestNames.join('\n') },
     { column: 'Submitted At', value: submittedAt },
     { column: 'Updated At', value: now },
   ]
@@ -521,6 +552,6 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     ...guest,
     willAttend,
     guestsAttending,
-    guestNames,
+    guestNames: allGuestNames,
   }
 }

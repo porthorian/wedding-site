@@ -160,6 +160,21 @@
                     />
 
                     <v-expand-transition>
+                      <div v-if="showNamedGuestSelector" class="rsvp-named-guest-selector">
+                        <div class="section-label">Who will be attending?</div>
+                        <v-checkbox
+                          v-for="name in parsedNamedGuests"
+                          :key="name"
+                          v-model="responseForm.attendingNamedGuests"
+                          :label="name"
+                          :value="name"
+                          density="compact"
+                          hide-details
+                        />
+                      </div>
+                    </v-expand-transition>
+
+                    <v-expand-transition>
                       <div v-if="additionalGuestsAttending > 0" class="rsvp-plus-one-names">
                         <v-text-field
                           v-for="(_, idx) in responseForm.guestNames"
@@ -254,6 +269,7 @@ type RsvpGuest = {
   firstName: string
   lastName: string
   displayName: string
+  namedGuests: string[]
   namedGuestsCount: number
   extraGuestsAllowed: number
   totalGuestCapacity: number
@@ -298,6 +314,7 @@ const lookupForm = reactive({
 const responseForm = reactive({
   willAttend: null as WillAttend | null,
   guestsAttending: 0,
+  attendingNamedGuests: [] as string[],
   guestNames: [] as string[],
 })
 
@@ -310,7 +327,14 @@ const stepLabel = computed(() => {
   return `Step ${phaseIndex.value + 1} of 3`
 })
 const guestDisplayName = computed(() => matchedGuest.value?.displayName || 'Guest')
+const parsedNamedGuests = computed(() => matchedGuest.value?.namedGuests ?? [])
 const namedGuestsCount = computed(() => matchedGuest.value?.namedGuestsCount ?? 1)
+const showNamedGuestSelector = computed(() =>
+  responseForm.willAttend === 'yes' &&
+  parsedNamedGuests.value.length > 1 &&
+  responseForm.guestsAttending > 0 &&
+  responseForm.guestsAttending < namedGuestsCount.value
+)
 const extraGuestsAllowed = computed(() => matchedGuest.value?.extraGuestsAllowed ?? 0)
 const totalGuestCapacity = computed(() => matchedGuest.value?.totalGuestCapacity ?? namedGuestsCount.value)
 const additionalGuestsAttending = computed(() =>
@@ -389,6 +413,7 @@ watch(
   (willAttend) => {
     if (willAttend === 'no') {
       responseForm.guestsAttending = 0
+      responseForm.attendingNamedGuests = []
       responseForm.guestNames = []
       return
     }
@@ -407,6 +432,7 @@ watch(
 watch(
   () => responseForm.guestsAttending,
   () => {
+    responseForm.attendingNamedGuests = []
     syncGuestNames()
   }
 )
@@ -555,6 +581,13 @@ function validateResponseValues(): string[] {
       errors.push('That response includes more guests than your invitation allows.')
     }
 
+    if (showNamedGuestSelector.value) {
+      const selected = responseForm.attendingNamedGuests
+      if (selected.length !== responseForm.guestsAttending) {
+        errors.push('Please select which guests will be attending.')
+      }
+    }
+
     if (additionalCount > 0) {
       const names = selectedGuestNames()
       if (names.length !== additionalCount || names.some((name) => !name)) {
@@ -648,6 +681,9 @@ async function submitRsvp() {
         zipCode: normalizeZipCode(lookupForm.zipCode) || undefined,
         willAttend: responseForm.willAttend,
         guestsAttending: responseForm.willAttend === 'yes' ? responseForm.guestsAttending : 0,
+        attendingNamedGuests: responseForm.willAttend === 'yes' && showNamedGuestSelector.value
+          ? responseForm.attendingNamedGuests
+          : [],
         guestNames: responseForm.willAttend === 'yes' ? selectedGuestNames() : [],
         captchaToken,
       },
