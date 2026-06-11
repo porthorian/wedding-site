@@ -11,6 +11,11 @@
               <span v-if="heroNameParts.second" class="hero-name-sep" aria-hidden="true">and</span>
               <span v-if="heroNameParts.second" class="hero-name-line">{{ heroNameParts.second }}</span>
             </h1>
+            <div class="hero-cta">
+              <v-btn color="primary" variant="outlined" class="text-none hero-cta-btn" @click="scrollToSectionId('rsvp')">
+                RSVP
+              </v-btn>
+            </div>
           </div>
         </div>
       </section>

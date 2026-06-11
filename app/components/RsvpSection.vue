@@ -7,6 +7,9 @@
       <p class="rsvp-cta-copy">
         Please enter the name on your invitation to let us know whether you will be joining us.
       </p>
+      <p class="rsvp-cta-deadline">
+        Kindly reply by <strong>July 17, 2026</strong>.
+      </p>
       <Vine2Divider />
       <v-btn to="/rsvp" color="primary" class="text-none rsvp-cta-button" variant="elevated" size="large">
         Open RSVP

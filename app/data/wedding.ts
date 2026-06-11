@@ -1,5 +1,5 @@
 export const wedding = {
-  names: 'Rosa & Vincent',
+  names: 'Rosa Franze & Vincent Marone',
   dateISO: '2026-08-07T16:30:00-04:00',
   reception: {
     name: 'The TillingHouse',
