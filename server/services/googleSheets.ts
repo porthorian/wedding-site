@@ -161,6 +161,38 @@ function normalizeInvitationName(value: string): string {
   return normalizeName(value).replace(/&/g, ' and ').replace(/\s+/g, ' ')
 }
 
+function splitInvitationNameGroup(value: string): string[] {
+  return value
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(/\s*(?:&|\band\b)\s*/i)
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+function buildInvitationNameCandidates(firstName: string, lastName: string): Set<string> {
+  const candidates = new Set<string>()
+  const addCandidate = (value: string) => {
+    const normalized = normalizeInvitationName(value)
+    if (normalized) candidates.add(normalized)
+  }
+
+  addCandidate([firstName, lastName].filter(Boolean).join(' '))
+
+  const firstNames = splitInvitationNameGroup(firstName)
+  const lastNames = splitInvitationNameGroup(lastName)
+
+  if (firstNames.length <= 1) return candidates
+
+  if (lastNames.length === firstNames.length) {
+    firstNames.forEach((first, index) => addCandidate([first, lastNames[index]].filter(Boolean).join(' ')))
+  } else if (lastNames.length === 1) {
+    firstNames.forEach((first) => addCandidate([first, lastNames[0]].filter(Boolean).join(' ')))
+  }
+
+  return candidates
+}
+
 function normalizeZipCode(value: string): string {
   return value.replace(/\D/g, '').slice(0, 5)
 }
@@ -351,12 +383,12 @@ function findMatchingRows(rows: SheetRows, input: RsvpLookupInput): MatchingGues
   const zipCode = normalizeZipCode(input.zipCode || '')
 
   return rows.rows.reduce<MatchingGuestRow[]>((matches, row, rowIndex) => {
-    const rowDisplayName = [cell(row, rows.columns['First Name']), cell(row, rows.columns['Last Name'])]
-      .filter(Boolean)
-      .join(' ')
+    const firstName = cell(row, rows.columns['First Name'])
+    const lastName = cell(row, rows.columns['Last Name'])
+    const rowNameCandidates = buildInvitationNameCandidates(firstName, lastName)
     const rowZipCode = normalizeZipCode(cell(row, rows.columns['ZIP Code']))
 
-    if (normalizeInvitationName(rowDisplayName) === fullName && (!zipCode || rowZipCode === zipCode)) {
+    if (rowNameCandidates.has(fullName) && (!zipCode || rowZipCode === zipCode)) {
       matches.push({
         rowNumber: rowIndex + DATA_ROW_START,
         row,
