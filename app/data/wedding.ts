@@ -31,6 +31,11 @@ export const wedding = {
         url: 'https://www.marriott.com/event-reservations/reservation-link.mi?id=1774359058374&key=GRP&app=resvlink&_branch_match_id=1472615574208485672&_branch_referrer=H4sIAAAAAAAAA8soKSkottLXTywo0MtNLCrKzC8p0UvOz9UvSi3OyczLtgdK2ALZZSCOWmaKraG5uYmxqaWBqYWxuYladmqlrXtQgFpdUWpaKlB3Xnp8UlF%2BeXFqka1zRlF%2BbioAthjj%2B2AAAAA%3D', 
         note: 'Reservation Cut off date is July 7th, 2026. Please book early!' 
       },
+      {
+        name: 'DoubleTree by Hilton Hotel Tinton Falls - Eatontown',
+        url: 'https://www.hilton.com/en/hotels/jfketdt-doubletree-tinton-falls-eatontown/',
+        note: '',
+      },
     ],
     gettingAround: [
       'Uber/Lyft is widely available.',
@@ -73,23 +78,15 @@ export const wedding = {
   faq: [
     {
       question: 'What should I wear?',
-      answer: 'Dress Code is Summer Formal, for women this means long or short gowens in bright summer colors and for men this means a suit or dress pants with a button down shirt, jacket and tie. Please no jeans, khakis, or cargo pants... Cocktail hour will be outside.',
+      answer: 'Dress Code is Summer Formal, for women this means long or short gowns in bright summer colors. For men a suit or dress pants with a button down shirt, jacket and tie. Please no jeans, khakis, or cargo pants... Cocktail hour will be outside.',
     },
     {
       question: 'Where should I go between the ceremony and cocktail hour?',
       answer: 'The Lobby of the TillingHouse will be open for guests to go to hangout until Cocktail Hour begins at 6pm. ',
     },
     {
-      question: 'Where is the ceremony?',
-      answer: 'The ceremony is at St. Mary of the Assumption Roman Catholic Church in Deal, NJ.',
-    },
-    {
-      question: 'Where is the reception?',
-      answer: 'Cocktail hour begins at 6:00 PM at The TillingHouse in Eatontown, NJ, followed by the reception at 7:00 PM.',
-    },
-    {
       question: 'Is there a hotel block?',
-      answer: 'Yes. We have a room block at the Sheraton Eatontown Hotel. The reservation cutoff date is July 7, 2026.',
+      answer: 'Yes. We have a room block at the Sheraton Eatontown Hotel. Last day to book a room is July 7, 2026. https://wedding.marone.us/#travel',
     },
   ],
   galleryPhotographer: {
