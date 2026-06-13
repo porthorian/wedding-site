@@ -144,7 +144,6 @@ const heroNavItems: Array<{ id: SectionId, label: string }> = [
   { id: 'registry', label: 'Registry' },
   { id: 'gallery', label: 'Photos' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'rsvp', label: 'RSVP' },
 ]
 
 const scrollableSectionIds = new Set<string>(sectionIdsInOrder)
