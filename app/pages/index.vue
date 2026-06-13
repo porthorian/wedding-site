@@ -1,5 +1,5 @@
 <template>
-  <section ref="pageShellRef" class="page-shell page-shell--snap paper-bg">
+  <section ref="pageShellRef" class="page-shell page-shell--snap paper-bg" :class="{ 'page-shell--programmatic-scroll': isProgrammaticScrolling }">
     <v-container class="page-sections">
       <section id="hero" class="landing-section landing-section--hero">
         <div class="hero-frame">
@@ -16,6 +16,19 @@
                 RSVP
               </v-btn>
             </div>
+            <nav class="hero-mini-nav" aria-label="Wedding details">
+              <v-btn
+                v-for="item in heroNavItems"
+                :key="item.id"
+                variant="text"
+                color="primary"
+                size="small"
+                class="text-none hero-mini-nav-btn"
+                @click="scrollToSectionId(item.id)"
+              >
+                {{ item.label }}
+              </v-btn>
+            </nav>
           </div>
         </div>
       </section>
@@ -101,6 +114,7 @@ import heroFrameSvg from '~/assets/svgs/810543_23257-NV0O8K.svg?raw'
 
 const pageShellRef = ref<HTMLElement | null>(null)
 const heroFrameRef = ref<HTMLElement | null>(null)
+const isProgrammaticScrolling = ref(false)
 const heroNameParts = computed(() => {
   const parts = wedding.names.split('&').map((part) => part.trim()).filter(Boolean)
   if (parts.length <= 1) return { first: wedding.names.trim(), second: '' }
@@ -122,10 +136,23 @@ const lazyActive = reactive({
 
 const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
 const sectionIdsInOrder = ['hero', 'schedule', 'travel', 'registry', 'gallery', 'faq', 'rsvp', 'footer'] as const
+type SectionId = typeof sectionIdsInOrder[number]
+
+const heroNavItems: Array<{ id: SectionId, label: string }> = [
+  { id: 'schedule', label: 'Schedule' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'registry', label: 'Registry' },
+  { id: 'gallery', label: 'Photos' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'rsvp', label: 'RSVP' },
+]
+
 const scrollableSectionIds = new Set<string>(sectionIdsInOrder)
 let scrollHashSyncRaf: number | null = null
 let suppressScrollHashSync = false
 let suppressScrollHashSyncTimer: number | null = null
+let programmaticScrollRestoreTimer: number | null = null
+let programmaticScrollGeneration = 0
 let previousScrollRestoration: ScrollRestoration | null = null
 
 function normalizeSectionId(rawId: string): string {
@@ -150,6 +177,17 @@ function activateLazySection(id: string) {
   if (!normalizedId) return
   const lazyId = normalizedId as keyof typeof lazyActive
   if (lazySectionIds.includes(lazyId)) lazyActive[lazyId] = true
+}
+
+function activateLazySectionsThrough(id: string) {
+  const normalizedId = normalizeSectionId(id)
+  const targetIndex = sectionIdsInOrder.findIndex((sectionId) => sectionId === normalizedId)
+  if (targetIndex === -1) {
+    activateLazySection(normalizedId)
+    return
+  }
+
+  sectionIdsInOrder.slice(0, targetIndex + 1).forEach(activateLazySection)
 }
 
 function getMountedSections(): HTMLElement[] {
@@ -194,6 +232,67 @@ function computeTargetScrollTop(container: HTMLElement, target: HTMLElement): nu
   const containerRect = container.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
   return Math.max(0, container.scrollTop + (targetRect.top - containerRect.top))
+}
+
+function beginProgrammaticScroll(): number {
+  programmaticScrollGeneration += 1
+  isProgrammaticScrolling.value = true
+  if (programmaticScrollRestoreTimer !== null) {
+    window.clearTimeout(programmaticScrollRestoreTimer)
+    programmaticScrollRestoreTimer = null
+  }
+
+  return programmaticScrollGeneration
+}
+
+function endProgrammaticScroll(scrollGeneration: number, delayMs = 120) {
+  if (scrollGeneration !== programmaticScrollGeneration) return
+
+  if (programmaticScrollRestoreTimer !== null) {
+    window.clearTimeout(programmaticScrollRestoreTimer)
+  }
+  programmaticScrollRestoreTimer = window.setTimeout(() => {
+    if (scrollGeneration === programmaticScrollGeneration) {
+      isProgrammaticScrolling.value = false
+    }
+    programmaticScrollRestoreTimer = null
+  }, delayMs)
+}
+
+async function waitForScrollSettle(container: HTMLElement, target: HTMLElement, maxMs: number) {
+  const startTime = performance.now()
+  let previousTop = container.scrollTop
+  let stableFrames = 0
+
+  while (performance.now() - startTime < maxMs) {
+    await waitForLayout(1)
+
+    const expectedTop = computeTargetScrollTop(container, target)
+    const distance = Math.abs(container.scrollTop - expectedTop)
+    const delta = Math.abs(container.scrollTop - previousTop)
+
+    if (distance <= 2 || delta <= 0.5) stableFrames += 1
+    else stableFrames = 0
+
+    if (stableFrames >= 3 && (distance <= 2 || performance.now() - startTime > 220)) return
+
+    previousTop = container.scrollTop
+  }
+}
+
+async function ensureTargetAligned(container: HTMLElement, target: HTMLElement, behavior: ScrollBehavior) {
+  if (behavior === 'smooth') await waitForScrollSettle(container, target, 1400)
+  else await waitForLayout(2)
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const expectedTop = computeTargetScrollTop(container, target)
+    const isAligned = Math.abs(container.scrollTop - expectedTop) <= 2
+    if (isAligned) return
+
+    container.scrollTo({ top: expectedTop, behavior: 'auto' })
+    container.scrollTop = expectedTop
+    await waitForLayout(1)
+  }
 }
 
 function getCurrentSectionIdFromScroll(): string | null {
@@ -243,7 +342,7 @@ async function scrollToSectionId(
   const normalizedId = normalizeSectionId(id)
   if (!normalizedId || !isScrollableSection(normalizedId)) return false
 
-  activateLazySection(normalizedId)
+  activateLazySectionsThrough(normalizedId)
   await waitForLayout(3)
 
   const target = document.getElementById(normalizedId)
@@ -252,14 +351,20 @@ async function scrollToSectionId(
   const behavior = opts?.behavior
     ?? (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth')
 
-  suppressHashSyncFor(behavior === 'smooth' ? 700 : 180)
-  target.scrollIntoView({ behavior, block: 'start' })
+  const scrollGeneration = beginProgrammaticScroll()
+  suppressHashSyncFor(behavior === 'smooth' ? 1800 : 300)
 
-  // Reinforce to the active scroll container in case hash scrolling targeted the wrong scroller.
-  const scrollContainer = getEffectiveScrollContainer()
-  const targetTop = computeTargetScrollTop(scrollContainer, target)
-  scrollContainer.scrollTo({ top: targetTop, behavior })
-  if (behavior === 'auto') scrollContainer.scrollTop = targetTop
+  try {
+    const scrollContainer = getEffectiveScrollContainer()
+    const targetTop = computeTargetScrollTop(scrollContainer, target)
+    scrollContainer.scrollTo({ top: targetTop, behavior })
+    if (behavior === 'auto') scrollContainer.scrollTop = targetTop
+    await ensureTargetAligned(scrollContainer, target, behavior)
+  } finally {
+    endProgrammaticScroll(scrollGeneration)
+  }
+
+  if (scrollGeneration !== programmaticScrollGeneration) return true
 
   if (opts?.updateHash === false) return true
 
@@ -427,7 +532,12 @@ onBeforeUnmount(() => {
     window.clearTimeout(suppressScrollHashSyncTimer)
     suppressScrollHashSyncTimer = null
   }
+  if (programmaticScrollRestoreTimer !== null) {
+    window.clearTimeout(programmaticScrollRestoreTimer)
+    programmaticScrollRestoreTimer = null
+  }
   suppressScrollHashSync = false
+  isProgrammaticScrolling.value = false
   pageShellRef.value?.removeEventListener('scroll', onPageShellScroll)
   window.removeEventListener('scroll', onPageShellScroll)
   window.removeEventListener('resize', onPageShellScroll)

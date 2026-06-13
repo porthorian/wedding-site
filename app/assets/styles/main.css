@@ -104,6 +104,14 @@ h3 {
   overscroll-behavior-y: contain;
 }
 
+.page-shell--snap.page-shell--programmatic-scroll {
+  scroll-snap-type: none;
+}
+
+.page-shell--snap.page-shell--programmatic-scroll .landing-section {
+  scroll-snap-stop: normal;
+}
+
 @supports (height: 100dvh) {
   .page-shell--snap {
     height: 100dvh;
@@ -370,6 +378,35 @@ h3 {
   padding: 0 clamp(28px, 3vw, 44px);
   min-height: 48px;
   border-color: rgba(var(--panel-border-rgb), 0.65);
+}
+
+.hero-mini-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 520px;
+  margin: clamp(14px, 2vw, 22px) auto 0;
+}
+
+.hero-mini-nav-btn.v-btn {
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.26);
+  background: rgba(var(--panel-surface-rgb), 0.42);
+  color: rgba(var(--ink-rgb), 0.82);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-mini-nav-btn.v-btn:hover {
+  border-color: rgba(var(--panel-border-rgb), 0.52);
+  background: rgba(var(--panel-surface-rgb), 0.68);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1237,7 +1274,8 @@ h3 {
 
 @media (max-width: 960px) {
   .page-shell--snap {
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
+    overscroll-behavior-y: auto;
   }
 
   .page-sections {
@@ -1250,6 +1288,7 @@ h3 {
     min-height: 100dvh;
     align-items: center;
     padding-block: clamp(14px, 3svh, 24px);
+    scroll-snap-stop: normal;
   }
 
   .landing-section + .landing-section {
@@ -1324,6 +1363,18 @@ h3 {
     font-size: clamp(14px, 4vw, 18px);
   }
 
+  .hero-mini-nav {
+    gap: 7px;
+    max-width: 440px;
+    margin-top: 14px;
+  }
+
+  .hero-mini-nav-btn.v-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 10.5px;
+  }
+
   .panel-title {
     font-size: 24px;
   }
@@ -1386,6 +1437,15 @@ h3 {
     font-size: clamp(13px, 3.8vw, 16px);
   }
 
+  .hero-mini-nav {
+    max-width: 360px;
+  }
+
+  .hero-mini-nav-btn.v-btn {
+    min-height: 31px;
+    padding: 0 9px;
+  }
+
   .panel-title {
     font-size: 22px;
   }
@@ -1402,6 +1462,17 @@ h3 {
     margin-top: 14px;
   }
 
+  .hero-mini-nav {
+    gap: 6px;
+    max-width: 320px;
+  }
+
+  .hero-mini-nav-btn.v-btn {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
   .section-card > .v-card-text {
     padding: 16px;
   }
@@ -1410,4 +1481,131 @@ h3 {
 .page-shell {
   position: relative;
   overflow-x: hidden;
+}
+
+.wedding-error-app {
+  min-height: 100svh;
+  background: transparent;
+}
+
+.wedding-error {
+  min-height: 100svh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  padding-block: clamp(22px, 5svh, 64px);
+}
+
+.wedding-error-container {
+  width: 100%;
+}
+
+.wedding-error-card {
+  position: relative;
+  overflow: hidden;
+  width: min(820px, 100%);
+  min-height: clamp(520px, 72svh, 720px);
+  margin-inline: auto;
+  border: 1px solid rgba(var(--panel-border-rgb), 0.58);
+  border-radius: 16px;
+  background: rgba(var(--panel-surface-rgb), 0.92);
+  box-shadow: 0 24px 52px rgba(var(--ink-rgb), 0.1);
+}
+
+.wedding-error-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: clamp(170px, 25vw, 280px);
+  background-repeat: no-repeat;
+  background-position: 50% 35%;
+  background-size: cover;
+  opacity: 0.16;
+  filter: saturate(0.9) contrast(0.95);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+}
+
+.wedding-error-content {
+  position: relative;
+  z-index: 1;
+  min-height: inherit;
+  padding: clamp(28px, 5vw, 68px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.wedding-error-code {
+  margin: 0 0 8px;
+  color: var(--paper-ink);
+  font-family: var(--font-title);
+  font-size: clamp(78px, 16vw, 148px);
+  font-weight: 600;
+  line-height: 0.78;
+  letter-spacing: 0;
+}
+
+.wedding-error-title {
+  max-width: 11ch;
+  margin: 0 auto;
+  color: var(--paper-ink);
+  font-family: var(--font-title);
+  font-size: clamp(38px, 7vw, 72px);
+  font-weight: 600;
+  line-height: 0.96;
+}
+
+.wedding-error-copy {
+  max-width: 46ch;
+  margin: 18px auto 0;
+  color: rgba(var(--ink-muted-rgb), 0.84);
+  font-size: clamp(16px, 1.8vw, 19px);
+  line-height: 1.7;
+}
+
+.wedding-error-path {
+  max-width: min(520px, 100%);
+  margin: 12px auto 0;
+  color: rgba(var(--ink-muted-rgb), 0.66);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.wedding-error-vine {
+  width: min(300px, 72%);
+  height: 48px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  opacity: 0.76;
+}
+
+.wedding-error-button.v-btn {
+  min-width: 168px;
+}
+
+@media (max-width: 760px) {
+  .wedding-error {
+    align-items: stretch;
+    padding-block: 12px;
+  }
+
+  .wedding-error-card {
+    min-height: calc(100svh - 24px);
+    min-height: calc(100dvh - 24px);
+  }
+
+  .wedding-error-content {
+    padding: 28px 18px;
+  }
+
+  .wedding-error-title {
+    max-width: 12ch;
+  }
 }

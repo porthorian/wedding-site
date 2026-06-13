@@ -35,11 +35,15 @@
               >
                 <p class="eyebrow">Kindly reply</p>
                 <h1 class="rsvp-page-title">RSVP</h1>
-                <p class="rsvp-page-copy">
+                <p v-if="rsvpClosed" class="rsvp-page-copy">
+                  {{ RSVP_CLOSED_MESSAGE }}
+                </p>
+                <p v-else class="rsvp-page-copy">
                   Enter your full name as it <strong>appears on your invitation</strong>.
+                  Kindly reply by <strong>{{ RSVP_DEADLINE_DISPLAY }}</strong>.
                 </p>
 
-                <v-row density="comfortable" class="rsvp-field-row">
+                <v-row v-if="!rsvpClosed" density="comfortable" class="rsvp-field-row">
                   <v-col cols="12">
                     <v-text-field
                       v-model="lookupForm.fullName"
@@ -67,7 +71,7 @@
                   </v-expand-transition>
                 </v-row>
 
-                <div class="rsvp-page-actions">
+                <div v-if="!rsvpClosed" class="rsvp-page-actions">
                   <v-btn
                     type="button"
                     color="primary"
@@ -88,7 +92,7 @@
               <div class="rsvp-faq-step">
                 <FaqSection compact />
 
-                <div class="rsvp-page-actions rsvp-page-actions--split">
+                <div v-if="!rsvpClosed" class="rsvp-page-actions rsvp-page-actions--split">
                   <v-btn type="button" variant="text" class="text-none" @click="returnToLookup">
                     Back
                   </v-btn>
@@ -199,7 +203,7 @@
                   Your invitation is reserved for the named guest{{ namedGuestsCount === 1 ? '' : 's' }}.
                 </p>
 
-                <div class="rsvp-page-actions rsvp-page-actions--split">
+                <div v-if="!rsvpClosed" class="rsvp-page-actions rsvp-page-actions--split">
                   <v-btn type="button" variant="text" class="text-none" :disabled="rsvpSubmitting" @click="returnToFaq">
                     Back
                   </v-btn>
@@ -236,7 +240,7 @@
             </v-window-item>
           </v-window>
 
-          <div v-if="!recaptchaBypass" class="rsvp-disclaimer muted">
+          <div v-if="!recaptchaBypass && !rsvpClosed" class="rsvp-disclaimer muted">
             This site is protected by reCAPTCHA and the Google
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
               Privacy Policy
@@ -254,8 +258,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useHead, useRuntimeConfig } from '#imports'
+import { RSVP_CLOSED_MESSAGE, RSVP_CUTOFF_ISO, RSVP_DEADLINE_DISPLAY, isRsvpClosed } from '#shared/rsvpDeadline'
 import { wedding } from '~/data/wedding'
 
 type Grecaptcha = {
@@ -304,7 +309,9 @@ const zipCodeRequired = ref(false)
 const recaptchaRequested = ref(false)
 const recaptchaReady = ref(false)
 const recaptchaPreparing = ref(false)
+const currentTimeMs = ref(Date.now())
 let recaptchaReadyPromise: Promise<Grecaptcha> | null = null
+let rsvpCutoffTimeout: ReturnType<typeof setTimeout> | null = null
 
 const lookupForm = reactive({
   fullName: '',
@@ -322,7 +329,11 @@ const rsvpPhotoSrc = computed(() => wedding.travel.photo)
 const rsvpBgStyle = computed(() => ({
   backgroundImage: rsvpPhotoSrc.value ? `url(${rsvpPhotoSrc.value})` : 'none',
 }))
+const rsvpCutoffTimeoutWindowMs = 10 * 60_000
+const rsvpCutoffTimeMs = new Date(RSVP_CUTOFF_ISO).getTime()
+const rsvpClosed = computed(() => isRsvpClosed(new Date(currentTimeMs.value)))
 const stepLabel = computed(() => {
+  if (rsvpClosed.value) return 'RSVP Closed'
   if (phaseIndex.value === 3) return 'Complete'
   return `Step ${phaseIndex.value + 1} of 3`
 })
@@ -408,6 +419,53 @@ useHead(() => {
   return head
 })
 
+function clearRsvpCutoffTimeout() {
+  if (!rsvpCutoffTimeout) return
+  clearTimeout(rsvpCutoffTimeout)
+  rsvpCutoffTimeout = null
+}
+
+function refreshRsvpClosedState(): boolean {
+  const now = Date.now()
+  currentTimeMs.value = now
+  return isRsvpClosed(new Date(now))
+}
+
+function refreshAndScheduleRsvpCutoff(): boolean {
+  const closed = refreshRsvpClosedState()
+  if (!closed) scheduleRsvpCutoffTimeout()
+  return closed
+}
+
+function scheduleRsvpCutoffTimeout() {
+  clearRsvpCutoffTimeout()
+
+  const remainingMs = rsvpCutoffTimeMs - currentTimeMs.value
+  if (remainingMs <= 0 || remainingMs > rsvpCutoffTimeoutWindowMs) return
+
+  rsvpCutoffTimeout = setTimeout(() => {
+    rsvpCutoffTimeout = null
+    currentTimeMs.value = Date.now()
+  }, remainingMs)
+}
+
+onMounted(() => {
+  refreshAndScheduleRsvpCutoff()
+})
+
+onBeforeUnmount(() => {
+  clearRsvpCutoffTimeout()
+})
+
+watch(rsvpClosed, (closed) => {
+  if (!closed) return
+  clearRsvpCutoffTimeout()
+  lookupSubmitting.value = false
+  rsvpSubmitting.value = false
+  phaseIndex.value = 0
+  setRsvpErrors([])
+})
+
 watch(
   () => responseForm.willAttend,
   (willAttend) => {
@@ -438,6 +496,7 @@ watch(
 )
 
 function onFormFocusIn() {
+  refreshAndScheduleRsvpCutoff()
   if (recaptchaBypass.value) return
   recaptchaRequested.value = true
   void ensureRecaptchaReady().catch(() => {})
@@ -613,6 +672,13 @@ function applyGuestResponse(guest: RsvpGuest) {
 
 async function lookupGuest() {
   setRsvpErrors([])
+
+  if (refreshAndScheduleRsvpCutoff()) {
+    setRsvpErrors([RSVP_CLOSED_MESSAGE])
+    phaseIndex.value = 0
+    return
+  }
+
   await lookupFormRef.value?.validate?.()
 
   const validationErrors = validateLookupValues()
@@ -653,6 +719,13 @@ async function lookupGuest() {
 
 async function submitRsvp() {
   setRsvpErrors([])
+
+  if (refreshAndScheduleRsvpCutoff()) {
+    setRsvpErrors([RSVP_CLOSED_MESSAGE])
+    phaseIndex.value = 0
+    return
+  }
+
   await responseFormRef.value?.validate?.()
 
   if (!matchedGuest.value) {
@@ -705,6 +778,13 @@ function returnToLookup() {
 
 async function continueToResponse() {
   setRsvpErrors([])
+
+  if (refreshAndScheduleRsvpCutoff()) {
+    setRsvpErrors([RSVP_CLOSED_MESSAGE])
+    phaseIndex.value = 0
+    return
+  }
+
   phaseIndex.value = 2
   await nextTick()
   responseFormRef.value?.resetValidation?.()

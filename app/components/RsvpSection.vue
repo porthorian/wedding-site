@@ -8,7 +8,7 @@
         Please enter the name on your invitation to let us know whether you will be joining us.
       </p>
       <p class="rsvp-cta-deadline">
-        Kindly reply by <strong>July 17, 2026</strong>.
+        Kindly reply by <strong>{{ RSVP_DEADLINE_DISPLAY }}</strong>.
       </p>
       <Vine2Divider />
       <v-btn to="/rsvp" color="primary" class="text-none rsvp-cta-button" variant="elevated" size="large">
@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RSVP_DEADLINE_DISPLAY } from '#shared/rsvpDeadline'
 import { wedding } from '~/data/wedding'
 
 const rsvpPhotoSrc = computed(() => wedding.travel.photo)

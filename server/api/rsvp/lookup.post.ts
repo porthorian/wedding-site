@@ -8,6 +8,7 @@ import {
   RsvpGuestNotFoundError,
 } from '../../services/googleSheets'
 import { verifyRecaptchaToken } from '../../services/recaptcha'
+import { RSVP_CLOSED_MESSAGE, isRsvpClosed } from '#shared/rsvpDeadline'
 
 type RsvpLookupRequestBody = {
   fullName?: unknown
@@ -94,6 +95,10 @@ export default defineEventHandler(async (event) => {
   const method = event.node.req.method || 'GET'
   if (method !== 'POST') {
     throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
+  }
+
+  if (isRsvpClosed()) {
+    throw createError({ statusCode: 403, statusMessage: RSVP_CLOSED_MESSAGE })
   }
 
   const body = (await readBody(event)) as RsvpLookupRequestBody
