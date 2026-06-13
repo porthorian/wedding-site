@@ -19,6 +19,7 @@ type RsvpRequestBody = {
   guestsAttending?: unknown
   attendingNamedGuests?: unknown
   guestNames?: unknown
+  declineReason?: unknown
   captchaToken?: unknown
 }
 
@@ -46,6 +47,26 @@ function readStringField(
 
   if (trimmed.length > opts.maxLen) {
     throw createError({ statusCode: 400, statusMessage: `${String(field)} is too long` })
+  }
+
+  return trimmed
+}
+
+function readOptionalTextField(
+  body: RsvpRequestBody,
+  field: keyof RsvpRequestBody,
+  opts: { maxLen: number; label: string }
+): string {
+  const value = body[field]
+  if (value == null) return ''
+
+  if (typeof value !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: `${String(field)} must be a string` })
+  }
+
+  const trimmed = value.replace(/\r\n?/g, '\n').trim()
+  if (trimmed.length > opts.maxLen) {
+    throw createError({ statusCode: 400, statusMessage: `${opts.label} must be ${opts.maxLen} characters or fewer` })
   }
 
   return trimmed
@@ -172,6 +193,9 @@ export default defineEventHandler(async (event) => {
   const guestsAttending = readGuestsAttendingField(body, willAttend)
   const attendingNamedGuests = willAttend === 'yes' ? readStringArrayField(body, 'attendingNamedGuests') : []
   const guestNames = willAttend === 'yes' ? readStringArrayField(body, 'guestNames') : []
+  const declineReason = willAttend === 'no'
+    ? readOptionalTextField(body, 'declineReason', { maxLen: 500, label: 'Decline reason' })
+    : ''
 
   const captcha = await verifyRecaptchaToken(event, captchaToken)
   if (!captcha.ok) captchaError(captcha)
@@ -184,6 +208,7 @@ export default defineEventHandler(async (event) => {
       guestsAttending,
       attendingNamedGuests,
       guestNames,
+      declineReason,
       submittedAtISO: new Date().toISOString(),
     })
 

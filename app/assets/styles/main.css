@@ -1249,6 +1249,10 @@ h3 {
   margin-top: 10px;
 }
 
+.rsvp-decline-reason {
+  margin-top: 10px;
+}
+
 .rsvp-plus-one-names {
   display: grid;
   gap: 8px;

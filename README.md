@@ -43,6 +43,7 @@ Required worksheet columns:
 - `Named Guests Count`
 - `Guests Eligible`
 - `Will Attend`
+- `Decline Reason`
 - `Guests Attending`
 - `Guests Names`
 - `Submitted At`

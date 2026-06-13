@@ -149,6 +149,22 @@
                 </div>
 
                 <v-expand-transition>
+                  <div v-if="responseForm.willAttend === 'no'" class="rsvp-decline-reason">
+                    <v-textarea
+                      v-model="responseForm.declineReason"
+                      label="Would you like to share why? (optional)"
+                      variant="underlined"
+                      density="compact"
+                      rows="3"
+                      auto-grow
+                      counter="500"
+                      maxlength="500"
+                      :rules="declineReasonRules"
+                    />
+                  </div>
+                </v-expand-transition>
+
+                <v-expand-transition>
                   <div v-if="responseForm.willAttend === 'yes' && totalGuestCapacity > 0" class="rsvp-plus-one">
                     <div class="section-label">Party size</div>
                     <v-select
@@ -281,6 +297,7 @@ type RsvpGuest = {
   willAttend: WillAttend | null
   guestsAttending: number
   guestNames: string[]
+  declineReason: string
 }
 
 type LookupResponse = {
@@ -323,6 +340,7 @@ const responseForm = reactive({
   guestsAttending: 0,
   attendingNamedGuests: [] as string[],
   guestNames: [] as string[],
+  declineReason: '',
 })
 
 const rsvpPhotoSrc = computed(() => wedding.travel.photo)
@@ -395,6 +413,9 @@ const guestCountRules = [
 const guestNameRules = [
   (value: string) => (!!value?.trim() ? true : 'Guest name is required'),
   (value: string) => (value?.trim().length <= 120 ? true : 'Guest name is too long'),
+]
+const declineReasonRules = [
+  (value: string) => ((value || '').trim().length <= 500 ? true : 'Reason must be 500 characters or fewer'),
 ]
 
 useHead(() => {
@@ -477,6 +498,7 @@ watch(
     }
 
     if (willAttend === 'yes') {
+      responseForm.declineReason = ''
       if (responseForm.guestsAttending < 1) {
         responseForm.guestsAttending = Math.min(namedGuestsCount.value, totalGuestCapacity.value)
       } else if (responseForm.guestsAttending > totalGuestCapacity.value) {
@@ -657,6 +679,10 @@ function validateResponseValues(): string[] {
     }
   }
 
+  if (responseForm.willAttend === 'no' && responseForm.declineReason.trim().length > 500) {
+    errors.push('Reason must be 500 characters or fewer.')
+  }
+
   return errors
 }
 
@@ -667,6 +693,7 @@ function applyGuestResponse(guest: RsvpGuest) {
     ? Math.min(Math.max(guest.guestsAttending, 1), guest.totalGuestCapacity)
     : 0
   responseForm.guestNames = guest.willAttend === 'yes' ? guest.guestNames.slice(0, additionalGuestsAttending.value) : []
+  responseForm.declineReason = guest.willAttend === 'no' ? guest.declineReason : ''
   syncGuestNames()
 }
 
@@ -758,6 +785,7 @@ async function submitRsvp() {
           ? responseForm.attendingNamedGuests
           : [],
         guestNames: responseForm.willAttend === 'yes' ? selectedGuestNames() : [],
+        declineReason: responseForm.willAttend === 'no' ? responseForm.declineReason.trim() : undefined,
         captchaToken,
       },
     })
