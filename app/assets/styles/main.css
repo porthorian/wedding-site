@@ -1021,6 +1021,26 @@ h3 {
   line-height: 1.65;
 }
 
+.faq-answer-link {
+  color: var(--paper-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--ink-muted-rgb), 0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+.faq-answer-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.faq-answer-link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid rgba(var(--panel-border-rgb), 0.42);
+  outline-offset: 3px;
+}
+
 .faq-section--compact .faq-intro {
   max-width: 52ch;
 }
