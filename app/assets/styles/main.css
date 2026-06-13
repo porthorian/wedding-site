@@ -1270,6 +1270,10 @@ h3 {
   text-underline-offset: 2px;
 }
 
+.grecaptcha-badge {
+  visibility: hidden;
+}
+
 .rsvp-page {
   min-height: 100svh;
   display: flex;

@@ -411,6 +411,7 @@ type LookupResponse =
 declare global {
   interface Window {
     grecaptcha?: Grecaptcha
+    ___grecaptcha_cfg?: unknown
   }
 }
 
@@ -435,8 +436,22 @@ const recaptchaReady = ref(false)
 const recaptchaPreparing = ref(false)
 const currentTimeMs = ref(Date.now())
 let recaptchaReadyPromise: Promise<Grecaptcha> | null = null
+let recaptchaDisposed = false
 let rsvpCutoffTimeout: ReturnType<typeof setTimeout> | null = null
 let successAnimation: anime.JSAnimation | null = null
+
+const recaptchaArtifactSelector = [
+  'script[src*="google.com/recaptcha/"]',
+  'script[src*="gstatic.com/recaptcha/"]',
+  'script[src*="recaptcha.net/recaptcha/"]',
+  'iframe[src*="google.com/recaptcha/"]',
+  'iframe[src*="recaptcha.google.com/recaptcha/"]',
+  'iframe[src*="gstatic.com/recaptcha/"]',
+  'iframe[src*="recaptcha.net/recaptcha/"]',
+  '.grecaptcha-badge',
+  'textarea[name="g-recaptcha-response"]',
+  'textarea[id^="g-recaptcha-response"]',
+].join(', ')
 
 const lookupForm = reactive({
   fullName: '',
@@ -615,6 +630,7 @@ onBeforeUnmount(() => {
   clearRsvpCutoffTimeout()
   successAnimation?.pause()
   successAnimation = null
+  cleanupRecaptcha()
 })
 
 watch(rsvpClosed, (closed) => {
@@ -703,6 +719,34 @@ function startRsvpSuccessAnimation() {
   })
 }
 
+function cleanupRecaptcha() {
+  recaptchaDisposed = true
+  recaptchaRequested.value = false
+  recaptchaReady.value = false
+  recaptchaPreparing.value = false
+  recaptchaReadyPromise = null
+
+  if (typeof document !== 'undefined') {
+    document.querySelectorAll(recaptchaArtifactSelector).forEach((node) => {
+      node.remove()
+    })
+  }
+
+  if (typeof window !== 'undefined') {
+    unsetRecaptchaGlobal('grecaptcha')
+    unsetRecaptchaGlobal('___grecaptcha_cfg')
+  }
+}
+
+function unsetRecaptchaGlobal(key: 'grecaptcha' | '___grecaptcha_cfg') {
+  try {
+    window[key] = undefined
+  } catch {
+    // Some browser-created globals may be non-writable.
+  }
+  Reflect.deleteProperty(window, key)
+}
+
 function onFormFocusIn() {
   refreshAndScheduleRsvpCutoff()
   if (recaptchaBypass.value) return
@@ -714,9 +758,12 @@ async function waitForGrecaptcha(timeoutMs = 10_000): Promise<Grecaptcha> {
   const startedAt = Date.now()
 
   while (true) {
+    if (recaptchaDisposed) throw new Error('reCAPTCHA was unloaded')
+
     const grecaptcha = window.grecaptcha
     if (grecaptcha?.ready && grecaptcha.execute) {
       await new Promise<void>((resolve) => grecaptcha.ready(() => resolve()))
+      if (recaptchaDisposed) throw new Error('reCAPTCHA was unloaded')
       return grecaptcha
     }
 
@@ -731,6 +778,7 @@ async function ensureRecaptchaReady(): Promise<Grecaptcha> {
   const siteKey = recaptchaSiteKey.value
   if (!siteKey) throw new Error('reCAPTCHA site key is not configured')
 
+  recaptchaDisposed = false
   recaptchaRequested.value = true
   await nextTick()
 
@@ -741,6 +789,7 @@ async function ensureRecaptchaReady(): Promise<Grecaptcha> {
   recaptchaPreparing.value = true
   recaptchaReadyPromise = waitForGrecaptcha()
     .then((grecaptcha) => {
+      if (recaptchaDisposed) throw new Error('reCAPTCHA was unloaded')
       recaptchaReady.value = true
       return grecaptcha
     })
