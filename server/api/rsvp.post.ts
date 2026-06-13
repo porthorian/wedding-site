@@ -15,6 +15,7 @@ import { RSVP_CLOSED_MESSAGE, isRsvpClosed } from '#shared/rsvpDeadline'
 type RsvpRequestBody = {
   fullName?: unknown
   zipCode?: unknown
+  matchToken?: unknown
   willAttend?: unknown
   guestsAttending?: unknown
   attendingNamedGuests?: unknown
@@ -189,6 +190,7 @@ export default defineEventHandler(async (event) => {
   const captchaToken = readStringField(body, 'captchaToken', { required: false, maxLen: 4096 }) || ''
   const fullName = readStringField(body, 'fullName', { required: true, maxLen: 160 })!
   const zipCode = readStringField(body, 'zipCode', { required: false, maxLen: 20 })
+  const matchToken = readStringField(body, 'matchToken', { required: false, maxLen: 4096 })
   const willAttend = readWillAttendField(body)
   const guestsAttending = readGuestsAttendingField(body, willAttend)
   const attendingNamedGuests = willAttend === 'yes' ? readStringArrayField(body, 'attendingNamedGuests') : []
@@ -204,6 +206,7 @@ export default defineEventHandler(async (event) => {
     const guest = await updateRsvpGuest(event, {
       fullName,
       zipCode,
+      matchToken,
       willAttend,
       guestsAttending,
       attendingNamedGuests,

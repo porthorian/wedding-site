@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import {
-  findRsvpGuest,
+  findRsvpGuestLookup,
   GoogleSheetsConfigError,
   GoogleSheetsRequestError,
   GoogleSheetsSchemaError,
@@ -110,11 +110,11 @@ export default defineEventHandler(async (event) => {
   if (!captcha.ok) captchaError(captcha)
 
   try {
-    const guest = await findRsvpGuest(event, { fullName, zipCode })
+    const lookup = await findRsvpGuestLookup(event, { fullName, zipCode })
 
     return {
       ok: true,
-      guest,
+      ...lookup,
       captcha: {
         bypassed: captcha.bypassed === true,
         score: captcha.score ?? null,

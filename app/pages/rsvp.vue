@@ -69,6 +69,27 @@
                       />
                     </v-col>
                   </v-expand-transition>
+                  <v-expand-transition>
+                    <v-col v-if="lookupMatchOptions.length > 1" cols="12">
+                      <div class="field-group rsvp-field-group rsvp-match-selector">
+                        <div class="section-label">Which invitation is yours?</div>
+                        <v-radio-group
+                          v-model="selectedLookupMatchToken"
+                          density="comfortable"
+                          :rules="lookupMatchRules"
+                          required
+                        >
+                          <v-radio
+                            v-for="match in lookupMatchOptions"
+                            :key="match.matchToken"
+                            :label="match.guest.displayName"
+                            :value="match.matchToken"
+                            density="compact"
+                          />
+                        </v-radio-group>
+                      </div>
+                    </v-col>
+                  </v-expand-transition>
                 </v-row>
 
                 <div v-if="!rsvpClosed" class="rsvp-page-actions">
@@ -82,7 +103,7 @@
                     :disabled="lookupSubmitting"
                     @click.prevent="lookupGuest"
                   >
-                    Find Invitation
+                    {{ lookupMatchOptions.length > 1 ? 'Continue' : 'Find Invitation' }}
                   </v-btn>
                 </div>
               </v-form>
@@ -300,10 +321,24 @@ type RsvpGuest = {
   declineReason: string
 }
 
-type LookupResponse = {
-  ok: boolean
+type RsvpGuestMatch = {
   guest: RsvpGuest
+  matchToken: string
 }
+
+type LookupResponse =
+  | {
+      ok: boolean
+      guest: RsvpGuest
+      matchToken: string
+      matches?: never
+    }
+  | {
+      ok: boolean
+      matches: RsvpGuestMatch[]
+      guest?: never
+      matchToken?: never
+    }
 
 declare global {
   interface Window {
@@ -322,6 +357,9 @@ const lookupSubmitting = ref(false)
 const rsvpSubmitting = ref(false)
 const rsvpErrors = ref<string[]>([])
 const matchedGuest = ref<RsvpGuest | null>(null)
+const matchedGuestToken = ref('')
+const lookupMatchOptions = ref<RsvpGuestMatch[]>([])
+const selectedLookupMatchToken = ref('')
 const zipCodeRequired = ref(false)
 const recaptchaRequested = ref(false)
 const recaptchaReady = ref(false)
@@ -356,6 +394,9 @@ const stepLabel = computed(() => {
   return `Step ${phaseIndex.value + 1} of 3`
 })
 const guestDisplayName = computed(() => matchedGuest.value?.displayName || 'Guest')
+const selectedLookupMatch = computed(() =>
+  lookupMatchOptions.value.find((match) => match.matchToken === selectedLookupMatchToken.value) || null
+)
 const parsedNamedGuests = computed(() => matchedGuest.value?.namedGuests ?? [])
 const namedGuestsCount = computed(() => matchedGuest.value?.namedGuestsCount ?? 1)
 const showNamedGuestSelector = computed(() =>
@@ -402,6 +443,9 @@ const fullNameRules = [
 const zipCodeRules = [
   (value: string) => (!zipCodeRequired.value || !!normalizeZipCode(value) ? true : 'ZIP Code is required'),
   (value: string) => (!value?.trim() || normalizeZipCode(value).length === 5 ? true : 'Please enter a 5-digit ZIP Code'),
+]
+const lookupMatchRules = [
+  (value: string) => (lookupMatchOptions.value.length <= 1 || !!value ? true : 'Please choose your invitation'),
 ]
 const willAttendRules = [(value: WillAttend | null) => (value === 'yes' || value === 'no' ? true : 'Please choose one')]
 const guestCountRules = [
@@ -486,6 +530,16 @@ watch(rsvpClosed, (closed) => {
   phaseIndex.value = 0
   setRsvpErrors([])
 })
+
+watch(
+  () => [lookupForm.fullName, lookupForm.zipCode],
+  () => {
+    lookupMatchOptions.value = []
+    selectedLookupMatchToken.value = ''
+    matchedGuest.value = null
+    matchedGuestToken.value = ''
+  }
+)
 
 watch(
   () => responseForm.willAttend,
@@ -686,12 +740,14 @@ function validateResponseValues(): string[] {
   return errors
 }
 
-function applyGuestResponse(guest: RsvpGuest) {
+function applyGuestResponse(guest: RsvpGuest, matchToken: string) {
   matchedGuest.value = guest
+  matchedGuestToken.value = matchToken
   responseForm.willAttend = guest.willAttend
   responseForm.guestsAttending = guest.willAttend === 'yes'
     ? Math.min(Math.max(guest.guestsAttending, 1), guest.totalGuestCapacity)
     : 0
+  responseForm.attendingNamedGuests = []
   responseForm.guestNames = guest.willAttend === 'yes' ? guest.guestNames.slice(0, additionalGuestsAttending.value) : []
   responseForm.declineReason = guest.willAttend === 'no' ? guest.declineReason : ''
   syncGuestNames()
@@ -714,6 +770,18 @@ async function lookupGuest() {
     return
   }
 
+  if (lookupMatchOptions.value.length > 1) {
+    if (!selectedLookupMatch.value) {
+      setRsvpErrors(['Please choose your invitation.'])
+      return
+    }
+
+    applyGuestResponse(selectedLookupMatch.value.guest, selectedLookupMatch.value.matchToken)
+    setRsvpErrors([])
+    phaseIndex.value = 1
+    return
+  }
+
   lookupSubmitting.value = true
   try {
     let captchaToken: string | undefined
@@ -730,7 +798,17 @@ async function lookupGuest() {
       },
     })
 
-    applyGuestResponse(response.guest)
+    if (response.matches?.length) {
+      lookupMatchOptions.value = response.matches
+      selectedLookupMatchToken.value = ''
+      zipCodeRequired.value = true
+      setRsvpErrors([])
+      return
+    }
+
+    applyGuestResponse(response.guest, response.matchToken)
+    lookupMatchOptions.value = []
+    selectedLookupMatchToken.value = ''
     zipCodeRequired.value = !!normalizeZipCode(lookupForm.zipCode)
     setRsvpErrors([])
     phaseIndex.value = 1
@@ -779,6 +857,7 @@ async function submitRsvp() {
       body: {
         fullName: trimFormValue(lookupForm.fullName),
         zipCode: normalizeZipCode(lookupForm.zipCode) || undefined,
+        matchToken: matchedGuestToken.value || undefined,
         willAttend: responseForm.willAttend,
         guestsAttending: responseForm.willAttend === 'yes' ? responseForm.guestsAttending : 0,
         attendingNamedGuests: responseForm.willAttend === 'yes' && showNamedGuestSelector.value

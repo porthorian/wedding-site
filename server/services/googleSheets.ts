@@ -1,4 +1,4 @@
-import { createSign } from 'node:crypto'
+import { createHmac, createSign, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
 
@@ -56,7 +56,17 @@ export type RsvpGuest = {
   declineReason: string
 }
 
+export type RsvpGuestMatch = {
+  guest: RsvpGuest
+  matchToken: string
+}
+
+export type RsvpLookupResult =
+  | (RsvpGuestMatch & { matches?: never })
+  | { matches: RsvpGuestMatch[] }
+
 export type RsvpUpdateInput = RsvpLookupInput & {
+  matchToken?: string
   willAttend: WillAttend
   guestsAttending: number
   attendingNamedGuests: string[]
@@ -110,6 +120,15 @@ type MatchingGuestRow = {
   guest: RsvpGuest
 }
 
+type MatchTokenPayload = {
+  v: 1
+  spreadsheetId: string
+  worksheetName: string
+  fullName: string
+  zipCode: string
+  matchKey: string
+}
+
 export class GoogleSheetsConfigError extends Error {
   constructor(message = 'Google Sheets is not configured') {
     super(message)
@@ -153,10 +172,23 @@ export class RsvpGuestValidationError extends Error {
 }
 
 let cachedToken: { accessToken: string; expiresAtMs: number; cacheKey: string } | null = null
+const MATCH_TOKEN_ERROR = 'Please look up your invitation again before submitting your RSVP.'
 
 function base64UrlEncode(value: string | Buffer): string {
   const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value)
   return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function base64UrlDecode(value: string): Buffer {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4))
+  return Buffer.from(`${normalized}${padding}`, 'base64')
+}
+
+function safeEqual(value: string, expected: string): boolean {
+  const valueBuffer = Buffer.from(value)
+  const expectedBuffer = Buffer.from(expected)
+  return valueBuffer.length === expectedBuffer.length && timingSafeEqual(valueBuffer, expectedBuffer)
 }
 
 function normalizeName(value: string): string {
@@ -378,6 +410,9 @@ function parseNamedGuests(firstName: string, lastName: string): string[] {
   if (firstParts.length > 0 && firstParts.length === lastParts.length) {
     return firstParts.map((f, i) => `${f} ${lastParts[i]}`.trim())
   }
+  if (firstParts.length > 1 && lastParts.length === 1) {
+    return firstParts.map((f) => `${f} ${lastParts[0]}`.trim())
+  }
   return [buildDisplayName(firstName, lastName)].filter(Boolean)
 }
 
@@ -427,6 +462,88 @@ function findMatchingRows(rows: SheetRows, input: RsvpLookupInput): MatchingGues
   }, [])
 }
 
+function matchTokenSecret(config: SheetsConfig): string {
+  return `${config.privateKey}\n${config.spreadsheetId}\n${config.worksheetName}`
+}
+
+function createMatchKey(config: SheetsConfig, rows: SheetRows, match: MatchingGuestRow): string {
+  const firstName = cell(match.row, rows.columns['First Name'])
+  const lastName = cell(match.row, rows.columns['Last Name'])
+  const zipCode = normalizeZipCode(cell(match.row, rows.columns['ZIP Code']))
+
+  return base64UrlEncode(
+    createHmac('sha256', matchTokenSecret(config))
+      .update([match.rowNumber, firstName, lastName, zipCode].join('\n'))
+      .digest()
+  )
+}
+
+function buildMatchTokenPayload(
+  config: SheetsConfig,
+  rows: SheetRows,
+  input: RsvpLookupInput,
+  match: MatchingGuestRow
+): MatchTokenPayload {
+  return {
+    v: 1,
+    spreadsheetId: config.spreadsheetId,
+    worksheetName: config.worksheetName,
+    fullName: normalizeInvitationName(input.fullName),
+    zipCode: normalizeZipCode(input.zipCode || ''),
+    matchKey: createMatchKey(config, rows, match),
+  }
+}
+
+function signMatchTokenPayload(config: SheetsConfig, encodedPayload: string): string {
+  return base64UrlEncode(createHmac('sha256', matchTokenSecret(config)).update(encodedPayload).digest())
+}
+
+function createMatchToken(config: SheetsConfig, rows: SheetRows, input: RsvpLookupInput, match: MatchingGuestRow): string {
+  const encodedPayload = base64UrlEncode(JSON.stringify(buildMatchTokenPayload(config, rows, input, match)))
+  return `${encodedPayload}.${signMatchTokenPayload(config, encodedPayload)}`
+}
+
+function readMatchTokenPayload(config: SheetsConfig, input: RsvpLookupInput, matchToken: string): MatchTokenPayload {
+  const [encodedPayload, signature, extra] = matchToken.trim().split('.')
+  if (!encodedPayload || !signature || extra) {
+    throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
+  }
+
+  const expectedSignature = signMatchTokenPayload(config, encodedPayload)
+  if (!safeEqual(signature, expectedSignature)) {
+    throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
+  }
+
+  let payload: MatchTokenPayload
+  try {
+    payload = JSON.parse(base64UrlDecode(encodedPayload).toString('utf8')) as MatchTokenPayload
+  } catch {
+    throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
+  }
+
+  const matchesRequest =
+    payload?.v === 1 &&
+    payload.spreadsheetId === config.spreadsheetId &&
+    payload.worksheetName === config.worksheetName &&
+    payload.fullName === normalizeInvitationName(input.fullName) &&
+    payload.zipCode === normalizeZipCode(input.zipCode || '') &&
+    typeof payload.matchKey === 'string' &&
+    payload.matchKey.length > 0
+
+  if (!matchesRequest) {
+    throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
+  }
+
+  return payload
+}
+
+function createRsvpGuestMatch(config: SheetsConfig, rows: SheetRows, input: RsvpLookupInput, match: MatchingGuestRow): RsvpGuestMatch {
+  return {
+    guest: match.guest,
+    matchToken: createMatchToken(config, rows, input, match),
+  }
+}
+
 async function getSheetRows(event: H3Event): Promise<{ config: SheetsConfig; rows: SheetRows }> {
   const config = readSheetsConfig(event)
   const range = `${quoteSheetName(config.worksheetName)}!A:Z`
@@ -449,7 +566,7 @@ async function getSheetRows(event: H3Event): Promise<{ config: SheetsConfig; row
   }
 }
 
-function getSingleGuestMatch(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow {
+function getMatchingRowsOrThrow(rows: SheetRows, input: RsvpLookupInput): { matches: MatchingGuestRow[]; hasZipCode: boolean } {
   const matches = findMatchingRows(rows, input)
   const hasZipCode = !!normalizeZipCode(input.zipCode || '')
 
@@ -461,15 +578,52 @@ function getSingleGuestMatch(rows: SheetRows, input: RsvpLookupInput): MatchingG
     )
   }
 
+  return { matches, hasZipCode }
+}
+
+function getLookupGuestMatches(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow[] {
+  const { matches, hasZipCode } = getMatchingRowsOrThrow(rows, input)
+
+  if (matches.length > 1) {
+    if (hasZipCode) return matches
+
+    throw new RsvpGuestDuplicateError(
+      'We found more than one invitation for that name. Please enter the ZIP Code from your mailing address.'
+    )
+  }
+
+  return matches
+}
+
+function getSingleGuestMatch(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow {
+  const { matches, hasZipCode } = getMatchingRowsOrThrow(rows, input)
+
   if (matches.length > 1) {
     throw new RsvpGuestDuplicateError(
       hasZipCode
-        ? 'We still found more than one invitation for that name and ZIP Code. Please contact Rosa or Vincent for help.'
+        ? 'We still found more than one invitation for that name and ZIP Code. Please choose your invitation and try again.'
         : 'We found more than one invitation for that name. Please enter the ZIP Code from your mailing address.'
     )
   }
 
   return matches[0]
+}
+
+function getTokenGuestMatch(config: SheetsConfig, rows: SheetRows, input: RsvpLookupInput & { matchToken: string }): MatchingGuestRow {
+  const payload = readMatchTokenPayload(config, input, input.matchToken)
+  const match = findMatchingRows(rows, input).find((candidate) => safeEqual(createMatchKey(config, rows, candidate), payload.matchKey))
+
+  if (!match) {
+    throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
+  }
+
+  return match
+}
+
+function getUpdateGuestMatch(config: SheetsConfig, rows: SheetRows, input: RsvpUpdateInput): MatchingGuestRow {
+  const matchToken = input.matchToken?.trim()
+  if (matchToken) return getTokenGuestMatch(config, rows, { ...input, matchToken })
+  return getSingleGuestMatch(rows, input)
 }
 
 function columnLetter(index: number): string {
@@ -490,9 +644,17 @@ export async function findRsvpGuest(event: H3Event, input: RsvpLookupInput): Pro
   return getSingleGuestMatch(rows, input).guest
 }
 
+export async function findRsvpGuestLookup(event: H3Event, input: RsvpLookupInput): Promise<RsvpLookupResult> {
+  const { config, rows } = await getSheetRows(event)
+  const matches = getLookupGuestMatches(rows, input).map((match) => createRsvpGuestMatch(config, rows, input, match))
+
+  if (matches.length === 1) return matches[0]
+  return { matches }
+}
+
 export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): Promise<RsvpGuest> {
   const { config, rows } = await getSheetRows(event)
-  const match = getSingleGuestMatch(rows, input)
+  const match = getUpdateGuestMatch(config, rows, input)
   const guest = match.guest
   const now = input.submittedAtISO
   const willAttend = input.willAttend
