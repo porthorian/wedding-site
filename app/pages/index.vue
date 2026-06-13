@@ -1,109 +1,127 @@
 <template>
-  <section ref="pageShellRef" class="page-shell page-shell--snap paper-bg" :class="{ 'page-shell--programmatic-scroll': isProgrammaticScrolling }">
-    <v-container class="page-sections">
-      <section id="hero" class="landing-section landing-section--hero">
-        <div class="hero-frame">
-          <div ref="heroFrameRef" class="hero-frame-art" aria-hidden="true" v-html="heroFrameSvg" />
-          <div class="hero-lockup mb-8">
-            <p class="hero-kicker">The Wedding Of</p>
-            <h1 class="hero-names-block" :aria-label="wedding.names">
-              <span class="hero-name-line">{{ heroNameParts.first }}</span>
-              <span v-if="heroNameParts.second" class="hero-name-sep" aria-hidden="true">and</span>
-              <span v-if="heroNameParts.second" class="hero-name-line">{{ heroNameParts.second }}</span>
-            </h1>
-            <div class="hero-cta">
-              <v-btn color="primary" variant="outlined" class="text-none hero-cta-btn" @click="scrollToSectionId('rsvp')">
-                RSVP
-              </v-btn>
+  <div class="landing-page">
+    <section ref="pageShellRef" class="page-shell page-shell--snap paper-bg" :class="{ 'page-shell--programmatic-scroll': isProgrammaticScrolling }">
+      <v-container class="page-sections">
+        <section id="hero" class="landing-section landing-section--hero">
+          <div class="hero-frame">
+            <div ref="heroFrameRef" class="hero-frame-art" aria-hidden="true" v-html="heroFrameSvg" />
+            <div class="hero-lockup mb-8">
+              <p class="hero-kicker">The Wedding Of</p>
+              <h1 class="hero-names-block" :aria-label="wedding.names">
+                <span class="hero-name-line">{{ heroNameParts.first }}</span>
+                <span v-if="heroNameParts.second" class="hero-name-sep" aria-hidden="true">and</span>
+                <span v-if="heroNameParts.second" class="hero-name-line">{{ heroNameParts.second }}</span>
+              </h1>
+              <div class="hero-cta">
+                <v-btn color="primary" variant="outlined" class="text-none hero-cta-btn" @click="scrollToSectionId('rsvp')">
+                  RSVP
+                </v-btn>
+              </div>
+              <nav class="hero-mini-nav" aria-label="Wedding details">
+                <v-btn
+                  v-for="item in heroNavItems"
+                  :key="item.id"
+                  variant="text"
+                  color="primary"
+                  size="small"
+                  class="text-none hero-mini-nav-btn"
+                  @click="scrollToSectionId(item.id)"
+                >
+                  {{ item.label }}
+                </v-btn>
+              </nav>
             </div>
-            <nav class="hero-mini-nav" aria-label="Wedding details">
-              <v-btn
-                v-for="item in heroNavItems"
-                :key="item.id"
-                variant="text"
-                color="primary"
-                size="small"
-                class="text-none hero-mini-nav-btn"
-                @click="scrollToSectionId(item.id)"
-              >
-                {{ item.label }}
-              </v-btn>
-            </nav>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="schedule" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.schedule"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <ScheduleSection />
-        </v-lazy>
-      </section>
+        <section id="schedule" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.schedule"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <ScheduleSection />
+          </v-lazy>
+        </section>
 
-      <section id="travel" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.travel"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <TravelSection />
-        </v-lazy>
-      </section>
+        <section id="travel" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.travel"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <TravelSection />
+          </v-lazy>
+        </section>
 
-      <section id="registry" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.registry"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <RegistrySection />
-        </v-lazy>
-      </section>
+        <section id="registry" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.registry"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <RegistrySection />
+          </v-lazy>
+        </section>
 
-      <section id="gallery" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.gallery"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <GallerySection />
-        </v-lazy>
-      </section>
+        <section id="gallery" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.gallery"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <GallerySection />
+          </v-lazy>
+        </section>
 
-      <section id="faq" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.faq"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <FaqSection />
-        </v-lazy>
-      </section>
+        <section id="faq" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.faq"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <FaqSection />
+          </v-lazy>
+        </section>
 
-      <section id="rsvp" class="landing-section">
-        <v-lazy
-          v-model="lazyActive.rsvp"
-          :options="{ threshold: 0.5 }"
-          transition="fade-transition"
-        >
-          <RsvpSection />
-        </v-lazy>
-      </section>
+        <section id="rsvp" class="landing-section">
+          <v-lazy
+            v-model="lazyActive.rsvp"
+            :options="{ threshold: 0.5 }"
+            transition="fade-transition"
+          >
+            <RsvpSection />
+          </v-lazy>
+        </section>
 
-      <section id="footer" class="landing-section landing-section--footer">
-        <v-lazy
-          v-model="lazyActive.footer"
-          :options="{ threshold: 0.2 }"
-          transition="fade-transition"
-        >
-          <FooterSection />
-        </v-lazy>
-      </section>
-    </v-container>
-  </section>
+        <section id="footer" class="landing-section landing-section--footer">
+          <v-lazy
+            v-model="lazyActive.footer"
+            :options="{ threshold: 0.2 }"
+            transition="fade-transition"
+          >
+            <FooterSection />
+          </v-lazy>
+        </section>
+      </v-container>
+    </section>
+
+    <nav class="section-dash-nav" aria-label="Section navigation">
+      <button
+        v-for="item in sectionNavItems"
+        :key="item.id"
+        type="button"
+        class="section-dash-nav__button"
+        :class="{ 'section-dash-nav__button--active': activeSectionId === item.id }"
+        :aria-label="`Go to ${item.label}`"
+        :aria-current="activeSectionId === item.id ? 'true' : undefined"
+        @click="scrollToSectionId(item.id)"
+      >
+        <span class="section-dash-nav__dash" aria-hidden="true" />
+        <span class="section-dash-nav__tooltip">{{ item.label }}</span>
+      </button>
+    </nav>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -137,6 +155,7 @@ const lazyActive = reactive({
 const lazySectionIds = Object.keys(lazyActive) as Array<keyof typeof lazyActive>
 const sectionIdsInOrder = ['hero', 'schedule', 'travel', 'registry', 'gallery', 'faq', 'rsvp', 'footer'] as const
 type SectionId = typeof sectionIdsInOrder[number]
+const activeSectionId = ref<SectionId>('hero')
 
 const heroNavItems: Array<{ id: SectionId, label: string }> = [
   { id: 'schedule', label: 'Schedule' },
@@ -144,6 +163,17 @@ const heroNavItems: Array<{ id: SectionId, label: string }> = [
   { id: 'registry', label: 'Registry' },
   { id: 'gallery', label: 'Photos' },
   { id: 'faq', label: 'FAQ' },
+]
+
+const sectionNavItems: Array<{ id: SectionId, label: string }> = [
+  { id: 'hero', label: 'Hero' },
+  { id: 'schedule', label: 'Schedule' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'registry', label: 'Registry' },
+  { id: 'gallery', label: 'Photos' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'rsvp', label: 'RSVP' },
+  { id: 'footer', label: 'End' },
 ]
 
 const scrollableSectionIds = new Set<string>(sectionIdsInOrder)
@@ -169,6 +199,10 @@ function normalizeSectionId(rawId: string): string {
 
 function isScrollableSection(id: string): boolean {
   return scrollableSectionIds.has(id)
+}
+
+function setActiveSectionId(id: string) {
+  if (isScrollableSection(id)) activeSectionId.value = id as SectionId
 }
 
 function activateLazySection(id: string) {
@@ -310,10 +344,11 @@ function getCurrentSectionIdFromScroll(): string | null {
 }
 
 function syncHashToCurrentSection() {
-  if (suppressScrollHashSync) return
-
   const currentSectionId = getCurrentSectionIdFromScroll()
   if (!currentSectionId) return
+
+  setActiveSectionId(currentSectionId)
+  if (suppressScrollHashSync) return
 
   if (currentSectionId === 'hero') {
     if (window.location.hash) history.replaceState(null, '', getUrlWithoutHash())
@@ -341,6 +376,7 @@ async function scrollToSectionId(
   const normalizedId = normalizeSectionId(id)
   if (!normalizedId || !isScrollableSection(normalizedId)) return false
 
+  setActiveSectionId(normalizedId)
   activateLazySectionsThrough(normalizedId)
   await waitForLayout(3)
 
