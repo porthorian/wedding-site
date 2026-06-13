@@ -170,22 +170,6 @@
                 </div>
 
                 <v-expand-transition>
-                  <div v-if="responseForm.willAttend === 'no'" class="rsvp-decline-reason">
-                    <v-textarea
-                      v-model="responseForm.declineReason"
-                      label="Would you like to share why? (optional)"
-                      variant="underlined"
-                      density="compact"
-                      rows="3"
-                      auto-grow
-                      counter="500"
-                      maxlength="500"
-                      :rules="declineReasonRules"
-                    />
-                  </div>
-                </v-expand-transition>
-
-                <v-expand-transition>
                   <div v-if="responseForm.willAttend === 'yes' && totalGuestCapacity > 0" class="rsvp-plus-one">
                     <div class="section-label">Party size</div>
                     <v-select
@@ -261,15 +245,99 @@
             </v-window-item>
 
             <v-window-item :value="3">
-              <div class="rsvp-success">
-                <p class="eyebrow">Received</p>
-                <h1 class="rsvp-page-title">Thank you</h1>
-                <p class="rsvp-page-copy">
-                  We received your RSVP for {{ guestDisplayName }}.
-                </p>
-                <Vine2Divider />
-                <div class="rsvp-page-actions">
-                  <v-btn to="/" color="primary" class="text-none" variant="elevated" size="large">
+              <div ref="successRef" class="rsvp-success">
+                <div
+                  class="rsvp-success-grid"
+                  :class="{ 'rsvp-success-grid--simple': !showSuccessCelebration }"
+                >
+                  <div class="rsvp-success-copy">
+                    <div class="rsvp-success-heading">
+                      <p class="eyebrow">Received</p>
+                      <div class="rsvp-success-flair" aria-hidden="true">
+                        <span
+                          v-for="idx in 7"
+                          :key="idx"
+                          class="rsvp-success-spark"
+                          :class="`rsvp-success-spark--${idx}`"
+                        />
+                      </div>
+                    </div>
+                    <h1 class="rsvp-page-title rsvp-success-title">Thank you</h1>
+                    <p class="rsvp-page-copy rsvp-success-message">
+                      {{ successMessage }}
+                    </p>
+                    <p class="rsvp-page-copy rsvp-success-received">
+                      We received your RSVP for {{ guestDisplayName }}.
+                    </p>
+
+                    <Vine2Divider />
+
+                    <dl class="rsvp-success-summary" aria-label="RSVP confirmation summary">
+                      <div v-if="showSuccessGuestRow" class="rsvp-success-summary-row">
+                        <dt>Guest</dt>
+                        <dd>{{ guestDisplayName }}</dd>
+                      </div>
+                      <div class="rsvp-success-summary-row">
+                        <dt>Response</dt>
+                        <dd>{{ successAttendanceLabel }}</dd>
+                      </div>
+                      <div v-if="successPartyLabel" class="rsvp-success-summary-row">
+                        <dt>Party</dt>
+                        <dd>{{ successPartyLabel }}</dd>
+                      </div>
+                      <div v-if="successGuestNames.length" class="rsvp-success-summary-row">
+                        <dt>Guests</dt>
+                        <dd>
+                          <ul class="rsvp-success-guest-list">
+                            <li v-for="name in successGuestNames" :key="name">
+                              {{ name }}
+                            </li>
+                          </ul>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <figure v-if="showSuccessCelebration" class="rsvp-success-polaroid">
+                    <img
+                      src="/images/gallery/JoePalaiaParkEngagementSession134166.jpg"
+                      alt="Rosa and Vincent engagement portrait"
+                    >
+                    <figcaption>See you on the dance floor!</figcaption>
+                  </figure>
+                </div>
+
+                <div
+                  class="rsvp-page-actions rsvp-success-actions"
+                  :class="{ 'rsvp-success-actions--simple': !showSuccessCelebration }"
+                >
+                  <v-btn
+                    v-if="showSuccessCelebration"
+                    to="/#schedule"
+                    color="primary"
+                    class="text-none"
+                    variant="elevated"
+                    size="large"
+                  >
+                    See Schedule
+                  </v-btn>
+                  <v-btn
+                    v-if="showSuccessCelebration"
+                    to="/#travel"
+                    color="primary"
+                    class="text-none"
+                    variant="outlined"
+                    size="large"
+                  >
+                    Travel Details
+                  </v-btn>
+                  <v-btn
+                    to="/"
+                    color="primary"
+                    class="text-none"
+                    :variant="showSuccessCelebration ? 'text' : 'elevated'"
+                    size="large"
+                  >
                     Return Home
                   </v-btn>
                 </div>
@@ -296,6 +364,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import * as anime from 'animejs'
 import { useHead, useRuntimeConfig } from '#imports'
 import { RSVP_CLOSED_MESSAGE, RSVP_CUTOFF_ISO, RSVP_DEADLINE_DISPLAY, isRsvpClosed } from '#shared/rsvpDeadline'
 import { wedding } from '~/data/wedding'
@@ -318,7 +387,6 @@ type RsvpGuest = {
   willAttend: WillAttend | null
   guestsAttending: number
   guestNames: string[]
-  declineReason: string
 }
 
 type RsvpGuestMatch = {
@@ -353,6 +421,7 @@ const recaptchaBypass = computed(() => runtimeConfig.public.recaptchaBypass === 
 const phaseIndex = ref(0)
 const lookupFormRef = ref<any>(null)
 const responseFormRef = ref<any>(null)
+const successRef = ref<HTMLElement | null>(null)
 const lookupSubmitting = ref(false)
 const rsvpSubmitting = ref(false)
 const rsvpErrors = ref<string[]>([])
@@ -367,6 +436,7 @@ const recaptchaPreparing = ref(false)
 const currentTimeMs = ref(Date.now())
 let recaptchaReadyPromise: Promise<Grecaptcha> | null = null
 let rsvpCutoffTimeout: ReturnType<typeof setTimeout> | null = null
+let successAnimation: anime.JSAnimation | null = null
 
 const lookupForm = reactive({
   fullName: '',
@@ -378,7 +448,6 @@ const responseForm = reactive({
   guestsAttending: 0,
   attendingNamedGuests: [] as string[],
   guestNames: [] as string[],
-  declineReason: '',
 })
 
 const rsvpPhotoSrc = computed(() => wedding.travel.photo)
@@ -394,11 +463,38 @@ const stepLabel = computed(() => {
   return `Step ${phaseIndex.value + 1} of 3`
 })
 const guestDisplayName = computed(() => matchedGuest.value?.displayName || 'Guest')
+const showSuccessCelebration = computed(() => responseForm.willAttend === 'yes')
+const successAttendanceLabel = computed(() =>
+  responseForm.willAttend === 'no' ? 'Unable to attend' : 'Attending'
+)
+const successPartyLabel = computed(() => {
+  if (responseForm.willAttend !== 'yes') return ''
+  const count = responseForm.guestsAttending
+  return count === 1 ? '1 person' : `${count} people`
+})
+const successMessage = computed(() =>
+  responseForm.willAttend === 'no'
+    ? "We'll miss you, but thank you for letting us know."
+    : `Your seat is saved for ${wedding.hero.dateDisplay}.`
+)
 const selectedLookupMatch = computed(() =>
   lookupMatchOptions.value.find((match) => match.matchToken === selectedLookupMatchToken.value) || null
 )
 const parsedNamedGuests = computed(() => matchedGuest.value?.namedGuests ?? [])
 const namedGuestsCount = computed(() => matchedGuest.value?.namedGuestsCount ?? 1)
+const successGuestNames = computed(() => {
+  if (responseForm.willAttend !== 'yes') return []
+
+  const namedGuestNames = showNamedGuestSelector.value
+    ? responseForm.attendingNamedGuests
+    : parsedNamedGuests.value.slice(0, Math.min(namedGuestsCount.value, responseForm.guestsAttending))
+  const allNames = [...namedGuestNames, ...selectedGuestNames()]
+    .map(trimFormValue)
+    .filter(Boolean)
+
+  return Array.from(new Set(allNames))
+})
+const showSuccessGuestRow = computed(() => successGuestNames.value.length === 0)
 const showNamedGuestSelector = computed(() =>
   responseForm.willAttend === 'yes' &&
   parsedNamedGuests.value.length > 1 &&
@@ -457,9 +553,6 @@ const guestCountRules = [
 const guestNameRules = [
   (value: string) => (!!value?.trim() ? true : 'Guest name is required'),
   (value: string) => (value?.trim().length <= 120 ? true : 'Guest name is too long'),
-]
-const declineReasonRules = [
-  (value: string) => ((value || '').trim().length <= 500 ? true : 'Reason must be 500 characters or fewer'),
 ]
 
 useHead(() => {
@@ -520,6 +613,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearRsvpCutoffTimeout()
+  successAnimation?.pause()
+  successAnimation = null
 })
 
 watch(rsvpClosed, (closed) => {
@@ -541,6 +636,12 @@ watch(
   }
 )
 
+watch(phaseIndex, async (nextPhase) => {
+  if (nextPhase !== 3) return
+  await nextTick()
+  startRsvpSuccessAnimation()
+})
+
 watch(
   () => responseForm.willAttend,
   (willAttend) => {
@@ -552,7 +653,6 @@ watch(
     }
 
     if (willAttend === 'yes') {
-      responseForm.declineReason = ''
       if (responseForm.guestsAttending < 1) {
         responseForm.guestsAttending = Math.min(namedGuestsCount.value, totalGuestCapacity.value)
       } else if (responseForm.guestsAttending > totalGuestCapacity.value) {
@@ -570,6 +670,38 @@ watch(
     syncGuestNames()
   }
 )
+
+function startRsvpSuccessAnimation() {
+  successAnimation?.pause()
+  successAnimation = null
+
+  const root = successRef.value
+  if (!root) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+  const revealNodes = root.querySelectorAll<HTMLElement>(
+    [
+      '.rsvp-success-title',
+      '.rsvp-success-message',
+      '.rsvp-success-received',
+      '.rsvp-vine',
+      '.rsvp-success-summary',
+      '.rsvp-success-guest-list',
+      '.rsvp-success-polaroid',
+      '.rsvp-success-actions',
+    ].join(', ')
+  )
+  if (!revealNodes.length) return
+
+  successAnimation = anime.animate(revealNodes, {
+    opacity: [0, 1],
+    translateY: [14, 0],
+    scale: [0.985, 1],
+    duration: 900,
+    delay: anime.stagger(90),
+    ease: 'outCubic',
+  })
+}
 
 function onFormFocusIn() {
   refreshAndScheduleRsvpCutoff()
@@ -733,10 +865,6 @@ function validateResponseValues(): string[] {
     }
   }
 
-  if (responseForm.willAttend === 'no' && responseForm.declineReason.trim().length > 500) {
-    errors.push('Reason must be 500 characters or fewer.')
-  }
-
   return errors
 }
 
@@ -749,7 +877,6 @@ function applyGuestResponse(guest: RsvpGuest, matchToken: string) {
     : 0
   responseForm.attendingNamedGuests = []
   responseForm.guestNames = guest.willAttend === 'yes' ? guest.guestNames.slice(0, additionalGuestsAttending.value) : []
-  responseForm.declineReason = guest.willAttend === 'no' ? guest.declineReason : ''
   syncGuestNames()
 }
 
@@ -864,7 +991,6 @@ async function submitRsvp() {
           ? responseForm.attendingNamedGuests
           : [],
         guestNames: responseForm.willAttend === 'yes' ? selectedGuestNames() : [],
-        declineReason: responseForm.willAttend === 'no' ? responseForm.declineReason.trim() : undefined,
         captchaToken,
       },
     })

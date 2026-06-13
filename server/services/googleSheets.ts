@@ -19,8 +19,6 @@ const REQUIRED_COLUMNS = [
   'Guests Eligible',
   // RSVP answer for the invitation: "yes" or "no".
   'Will Attend',
-  // Optional explanation when the invitation declines.
-  'Decline Reason',
   // Total number of people attending, including named guests and extra guests.
   'Guests Attending',
   // Newline-separated names for additional unnamed guests only.
@@ -53,7 +51,6 @@ export type RsvpGuest = {
   willAttend: WillAttend | null
   guestsAttending: number
   guestNames: string[]
-  declineReason: string
 }
 
 export type RsvpGuestMatch = {
@@ -71,7 +68,6 @@ export type RsvpUpdateInput = RsvpLookupInput & {
   guestsAttending: number
   attendingNamedGuests: string[]
   guestNames: string[]
-  declineReason: string
   submittedAtISO: string
 }
 
@@ -436,7 +432,6 @@ function mapGuest(row: string[], columns: Record<RequiredColumn, number>): RsvpG
     willAttend: parseWillAttend(cell(row, columns['Will Attend'])),
     guestsAttending: parseNonNegativeInteger(cell(row, columns['Guests Attending'])),
     guestNames: parseGuestNames(cell(row, columns['Guests Names'])),
-    declineReason: cell(row, columns['Decline Reason']),
   }
 }
 
@@ -662,7 +657,6 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
   const cleanName = (name: string) => name.trim().replace(/\s+/g, ' ')
   const guestNames = willAttend === 'yes' ? input.guestNames.map(cleanName) : []
   const attendingNamedGuests = willAttend === 'yes' ? input.attendingNamedGuests.map(cleanName) : []
-  const declineReason = willAttend === 'no' ? input.declineReason.replace(/\r\n?/g, '\n').trim() : ''
   const additionalGuestsAttending = Math.max(0, guestsAttending - guest.namedGuestsCount)
   const partialNamedAttending = guestsAttending < guest.namedGuestsCount
   const submittedAt = cell(match.row, rows.columns['Submitted At']) || now
@@ -692,15 +686,10 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     throw new RsvpGuestValidationError('Each additional guest name must be 120 characters or fewer.')
   }
 
-  if (declineReason.length > 500) {
-    throw new RsvpGuestValidationError('Decline reason must be 500 characters or fewer.')
-  }
-
   const allGuestNames = [...attendingNamedGuests, ...guestNames]
 
   const updates: Array<{ column: RequiredColumn; value: string }> = [
     { column: 'Will Attend', value: willAttend },
-    { column: 'Decline Reason', value: declineReason },
     { column: 'Guests Attending', value: String(guestsAttending) },
     { column: 'Guests Names', value: allGuestNames.join('\n') },
     { column: 'Submitted At', value: submittedAt },
@@ -726,6 +715,5 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     willAttend,
     guestsAttending,
     guestNames: allGuestNames,
-    declineReason,
   }
 }
