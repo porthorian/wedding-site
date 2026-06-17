@@ -49,8 +49,11 @@ Required worksheet columns:
 - `Submitted At`
 - `Updated At`
 
-`Named Guests Count` is the number of people named on the invitation. `Guests Eligible` is the number of
-additional guests allowed. `Guests Attending` stores the total attending count.
+`Named Guests Count` is the number of people named on the invitation. Use `1` or higher for ordinary named
+invitees. When `Named Guests Count` is blank or `0`, the invitation is treated as an anonymous party: no names
+are assumed from the sheet, `Guests Eligible` is the maximum party size, and the RSVP form asks for each attendee's
+name. For rows with named guests, `Guests Eligible` is the number of additional guests allowed.
+`Guests Attending` stores the total attending count.
 
 ## Notes
 

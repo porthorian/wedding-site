@@ -218,7 +218,7 @@
                 </v-expand-transition>
 
                 <p
-                  v-if="responseForm.willAttend === 'yes' && matchedGuest && extraGuestsAllowed === 0"
+                  v-if="responseForm.willAttend === 'yes' && matchedGuest && !isAnonymousParty && extraGuestsAllowed === 0"
                   class="rsvp-page-note muted"
                 >
                   Your invitation is reserved for the named guest{{ namedGuestsCount === 1 ? '' : 's' }}.
@@ -497,6 +497,7 @@ const selectedLookupMatch = computed(() =>
 )
 const parsedNamedGuests = computed(() => matchedGuest.value?.namedGuests ?? [])
 const namedGuestsCount = computed(() => matchedGuest.value?.namedGuestsCount ?? 1)
+const isAnonymousParty = computed(() => matchedGuest.value?.namedGuestsCount === 0)
 const successGuestNames = computed(() => {
   if (responseForm.willAttend !== 'yes') return []
 
@@ -518,6 +519,9 @@ const showNamedGuestSelector = computed(() =>
 )
 const extraGuestsAllowed = computed(() => matchedGuest.value?.extraGuestsAllowed ?? 0)
 const totalGuestCapacity = computed(() => matchedGuest.value?.totalGuestCapacity ?? namedGuestsCount.value)
+const defaultGuestsAttending = computed(() =>
+  totalGuestCapacity.value > 0 ? Math.min(Math.max(namedGuestsCount.value, 1), totalGuestCapacity.value) : 0
+)
 const additionalGuestsAttending = computed(() =>
   Math.max(0, responseForm.guestsAttending - namedGuestsCount.value)
 )
@@ -530,7 +534,7 @@ const invitationCapacityNotice = computed(() => {
     : `Your invitation includes space for up to ${total} people total.`
 
   const extra = extraGuestsAllowed.value
-  if (extra <= 0) return totalCopy
+  if (isAnonymousParty.value || extra <= 0) return totalCopy
 
   const extraCopy = extra === 1
     ? 'This includes space for 1 additional guest.'
@@ -670,7 +674,7 @@ watch(
 
     if (willAttend === 'yes') {
       if (responseForm.guestsAttending < 1) {
-        responseForm.guestsAttending = Math.min(namedGuestsCount.value, totalGuestCapacity.value)
+        responseForm.guestsAttending = defaultGuestsAttending.value
       } else if (responseForm.guestsAttending > totalGuestCapacity.value) {
         responseForm.guestsAttending = totalGuestCapacity.value
       }
@@ -821,6 +825,7 @@ function normalizeZipCode(value: string): string {
 }
 
 function additionalGuestLabel(idx: number): string {
+  if (isAnonymousParty.value) return `Guest ${idx + 1} name`
   return `Additional guest ${idx + 1} name`
 }
 
@@ -907,9 +912,13 @@ function validateResponseValues(): string[] {
     if (additionalCount > 0) {
       const names = selectedGuestNames()
       if (names.length !== additionalCount || names.some((name) => !name)) {
-        errors.push('Please enter a name for each additional guest.')
+        errors.push(isAnonymousParty.value
+          ? 'Please enter a name for each guest.'
+          : 'Please enter a name for each additional guest.')
       } else if (names.some((name) => name.length > 120)) {
-        errors.push('Each additional guest name must be 120 characters or fewer.')
+        errors.push(isAnonymousParty.value
+          ? 'Each guest name must be 120 characters or fewer.'
+          : 'Each additional guest name must be 120 characters or fewer.')
       }
     }
   }

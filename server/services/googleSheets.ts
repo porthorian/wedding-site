@@ -13,15 +13,15 @@ const REQUIRED_COLUMNS = [
   'Last Name',
   // Mailing ZIP used only to disambiguate duplicate invitation names.
   'ZIP Code',
-  // Count of people explicitly named on the invitation.
+  // Count of people explicitly named on the invitation. Blank or 0 means names are collected during RSVP.
   'Named Guests Count',
-  // Count of additional unnamed guests this invitation may bring.
+  // Count of additional unnamed guests, or total capacity when no guests are named.
   'Guests Eligible',
   // RSVP answer for the invitation: "yes" or "no".
   'Will Attend',
   // Total number of people attending, including named guests and extra guests.
   'Guests Attending',
-  // Newline-separated names for additional unnamed guests only.
+  // Newline-separated names collected during RSVP.
   'Guests Names',
   // Timestamp from the first successful RSVP submission.
   'Submitted At',
@@ -361,7 +361,7 @@ function parseNonNegativeInteger(value: string): number {
 }
 
 function parseNamedGuestsCount(value: string): number {
-  return Math.max(1, parseNonNegativeInteger(value))
+  return parseNonNegativeInteger(value)
 }
 
 function parseGuestNames(value: string): string[] {
@@ -416,10 +416,12 @@ function mapGuest(row: string[], columns: Record<RequiredColumn, number>): RsvpG
   const firstName = cell(row, columns['First Name'])
   const lastName = cell(row, columns['Last Name'])
   const displayName = buildDisplayName(firstName, lastName)
-  const namedGuests = parseNamedGuests(firstName, lastName)
   const namedGuestsCount = parseNamedGuestsCount(cell(row, columns['Named Guests Count']))
+  const namedGuests = namedGuestsCount > 0 ? parseNamedGuests(firstName, lastName) : []
   const extraGuestsAllowed = parseNonNegativeInteger(cell(row, columns['Guests Eligible']))
-  const totalGuestCapacity = namedGuestsCount + extraGuestsAllowed
+  const totalGuestCapacity = namedGuestsCount > 0
+    ? namedGuestsCount + extraGuestsAllowed
+    : extraGuestsAllowed
 
   return {
     firstName,
@@ -656,7 +658,9 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
   const guestsAttending = willAttend === 'yes' ? input.guestsAttending : 0
   const cleanName = (name: string) => name.trim().replace(/\s+/g, ' ')
   const guestNames = willAttend === 'yes' ? input.guestNames.map(cleanName) : []
-  const attendingNamedGuests = willAttend === 'yes' ? input.attendingNamedGuests.map(cleanName) : []
+  const attendingNamedGuests = willAttend === 'yes' && guest.namedGuestsCount > 0
+    ? input.attendingNamedGuests.map(cleanName)
+    : []
   const additionalGuestsAttending = Math.max(0, guestsAttending - guest.namedGuestsCount)
   const partialNamedAttending = guestsAttending < guest.namedGuestsCount
   const submittedAt = cell(match.row, rows.columns['Submitted At']) || now
@@ -678,12 +682,20 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
   }
 
   if (guestNames.length !== additionalGuestsAttending) {
-    throw new RsvpGuestValidationError('Please enter a name for each additional guest.')
+    throw new RsvpGuestValidationError(
+      guest.namedGuestsCount === 0
+        ? 'Please enter a name for each guest.'
+        : 'Please enter a name for each additional guest.'
+    )
   }
 
   const hasInvalidGuestName = guestNames.some((name) => !name || name.length > 120)
   if (hasInvalidGuestName) {
-    throw new RsvpGuestValidationError('Each additional guest name must be 120 characters or fewer.')
+    throw new RsvpGuestValidationError(
+      guest.namedGuestsCount === 0
+        ? 'Each guest name must be 120 characters or fewer.'
+        : 'Each additional guest name must be 120 characters or fewer.'
+    )
   }
 
   const allGuestNames = [...attendingNamedGuests, ...guestNames]
