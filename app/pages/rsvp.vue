@@ -99,6 +99,7 @@
                     class="text-none"
                     variant="elevated"
                     size="large"
+                    data-rybbit-event="lookup_invitation"
                     :loading="lookupSubmitting || recaptchaPreparing"
                     :disabled="lookupSubmitting"
                     @click.prevent="lookupGuest"
@@ -234,6 +235,7 @@
                     class="text-none"
                     variant="elevated"
                     size="large"
+                    data-rybbit-event="submit_rsvp"
                     :loading="rsvpSubmitting || recaptchaPreparing"
                     :disabled="rsvpSubmitting"
                     @click.prevent="submitRsvp"
@@ -870,6 +872,127 @@ function getStatusCode(err: unknown): number | null {
   return typeof value === 'number' ? value : null
 }
 
+function isApiResponseError(err: unknown): boolean {
+  return getStatusCode(err) !== null
+}
+
+function serializeError(err: unknown) {
+  if (!err || typeof err !== 'object') {
+    return {
+      name: 'Error',
+      message: typeof err === 'string' ? err : 'Unknown error',
+    }
+  }
+
+  const maybeAny = err as any
+  return {
+    name: typeof maybeAny?.name === 'string' ? maybeAny.name : 'Error',
+    message: typeof maybeAny?.message === 'string' ? maybeAny.message : getErrorMessage(err),
+    stack: typeof maybeAny?.stack === 'string' ? maybeAny.stack : undefined,
+    statusCode: getStatusCode(err),
+    statusMessage: typeof maybeAny?.statusMessage === 'string'
+      ? maybeAny.statusMessage
+      : typeof maybeAny?.data?.statusMessage === 'string'
+        ? maybeAny.data.statusMessage
+        : undefined,
+    data: maybeAny?.data,
+  }
+}
+
+function buildRsvpClientErrorReport(operation: string, err: unknown, visibleMessage: string) {
+  return {
+    operation,
+    endpoint: '/rsvp',
+    timestampISO: new Date().toISOString(),
+    visibleMessage,
+    error: serializeError(err),
+    page: {
+      phaseIndex: phaseIndex.value,
+      stepLabel: stepLabel.value,
+      rsvpClosed: rsvpClosed.value,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+    },
+    recaptcha: {
+      bypassed: recaptchaBypass.value,
+      requested: recaptchaRequested.value,
+      ready: recaptchaReady.value,
+      preparing: recaptchaPreparing.value,
+    },
+    lookupForm: {
+      fullName: trimFormValue(lookupForm.fullName),
+      zipCode: normalizeZipCode(lookupForm.zipCode) || lookupForm.zipCode.trim(),
+      zipCodeRequired: zipCodeRequired.value,
+      selectedLookupMatchToken: selectedLookupMatchToken.value ? '[redacted]' : '',
+      lookupMatchCount: lookupMatchOptions.value.length,
+      lookupMatches: lookupMatchOptions.value.map((match) => ({
+        displayName: match.guest.displayName,
+        namedGuestsCount: match.guest.namedGuestsCount,
+        totalGuestCapacity: match.guest.totalGuestCapacity,
+      })),
+    },
+    matchedGuest: matchedGuest.value
+      ? {
+          firstName: matchedGuest.value.firstName,
+          lastName: matchedGuest.value.lastName,
+          displayName: matchedGuest.value.displayName,
+          namedGuests: matchedGuest.value.namedGuests,
+          namedGuestsCount: matchedGuest.value.namedGuestsCount,
+          extraGuestsAllowed: matchedGuest.value.extraGuestsAllowed,
+          totalGuestCapacity: matchedGuest.value.totalGuestCapacity,
+          willAttend: matchedGuest.value.willAttend,
+          guestsAttending: matchedGuest.value.guestsAttending,
+          guestNames: matchedGuest.value.guestNames,
+          matchToken: matchedGuestToken.value ? '[redacted]' : '',
+        }
+      : null,
+    responseForm: {
+      willAttend: responseForm.willAttend,
+      guestsAttending: responseForm.guestsAttending,
+      attendingNamedGuests: responseForm.attendingNamedGuests,
+      guestNames: responseForm.guestNames.map(trimFormValue),
+      selectedGuestNames: selectedGuestNames(),
+      showNamedGuestSelector: showNamedGuestSelector.value,
+      additionalGuestsAttending: additionalGuestsAttending.value,
+    },
+  }
+}
+
+async function reportRsvpClientError(operation: string, err: unknown, visibleMessage: string) {
+  try {
+    await $fetch('/api/rsvp/error', {
+      method: 'POST',
+      body: buildRsvpClientErrorReport(operation, err, visibleMessage),
+    })
+  } catch (reportErr) {
+    console.error('[rsvp] failed to report client error:', reportErr)
+  }
+}
+
+async function validateLookupFormOrReport(): Promise<boolean> {
+  try {
+    await lookupFormRef.value?.validate?.()
+    return true
+  } catch (err) {
+    const message = getErrorMessage(err)
+    setRsvpErrors([message])
+    void reportRsvpClientError('lookup-form-validation', err, message)
+    return false
+  }
+}
+
+async function validateResponseFormOrReport(): Promise<boolean> {
+  try {
+    await responseFormRef.value?.validate?.()
+    return true
+  } catch (err) {
+    const message = getErrorMessage(err)
+    setRsvpErrors([message])
+    void reportRsvpClientError('response-form-validation', err, message)
+    return false
+  }
+}
+
 function validateLookupValues(): string[] {
   const errors: string[] = []
   const fullName = trimFormValue(lookupForm.fullName)
@@ -947,7 +1070,7 @@ async function lookupGuest() {
     return
   }
 
-  await lookupFormRef.value?.validate?.()
+  if (!(await validateLookupFormOrReport())) return
 
   const validationErrors = validateLookupValues()
   if (validationErrors.length) {
@@ -1001,7 +1124,11 @@ async function lookupGuest() {
     if (getStatusCode(err) === 409) {
       zipCodeRequired.value = true
     }
-    setRsvpErrors([getErrorMessage(err)])
+    const message = getErrorMessage(err)
+    if (!isApiResponseError(err)) {
+      void reportRsvpClientError('lookup-submit', err, message)
+    }
+    setRsvpErrors([message])
   } finally {
     lookupSubmitting.value = false
   }
@@ -1016,7 +1143,7 @@ async function submitRsvp() {
     return
   }
 
-  await responseFormRef.value?.validate?.()
+  if (!(await validateResponseFormOrReport())) return
 
   if (!matchedGuest.value) {
     setRsvpErrors(['Please look up your invitation first.'])
@@ -1056,7 +1183,11 @@ async function submitRsvp() {
     setRsvpErrors([])
     phaseIndex.value = 3
   } catch (err) {
-    setRsvpErrors([getErrorMessage(err)])
+    const message = getErrorMessage(err)
+    if (!isApiResponseError(err)) {
+      void reportRsvpClientError('submit-rsvp', err, message)
+    }
+    setRsvpErrors([message])
   } finally {
     rsvpSubmitting.value = false
   }

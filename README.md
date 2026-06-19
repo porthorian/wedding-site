@@ -36,7 +36,7 @@ The RSVP flow reads and updates one Google Sheets worksheet. Share the sheet wit
 and provide the env vars shown in `.env.example`.
 
 Set `DISCORD_RSVP_WEBHOOK_URL` to a Discord channel incoming webhook URL to receive server-side notifications for
-new RSVP submissions and changed RSVP updates.
+new RSVP submissions, changed RSVP updates, and operational RSVP error reports.
 
 Required worksheet columns:
 

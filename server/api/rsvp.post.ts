@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, readBody, type H3Event } from 'h3'
 import {
   GoogleSheetsConfigError,
   GoogleSheetsRequestError,
@@ -9,7 +9,7 @@ import {
   updateRsvpGuest,
   type WillAttend,
 } from '../services/googleSheets'
-import { sendRsvpDiscordNotification } from '../services/discordRsvp'
+import { sendRsvpDiscordErrorNotification, sendRsvpDiscordNotification } from '../services/discordRsvp'
 import { verifyRecaptchaToken } from '../services/recaptcha'
 import { RSVP_CLOSED_MESSAGE, isRsvpClosed } from '#shared/rsvpDeadline'
 
@@ -23,6 +23,8 @@ type RsvpRequestBody = {
   guestNames?: unknown
   captchaToken?: unknown
 }
+
+type CaptchaVerifyResult = Awaited<ReturnType<typeof verifyRecaptchaToken>>
 
 function readStringField(
   body: RsvpRequestBody,
@@ -127,82 +129,118 @@ function captchaError(captcha: Awaited<ReturnType<typeof verifyRecaptchaToken>>)
   throw createError({ statusCode, statusMessage })
 }
 
+function throwWithCause(responseError: unknown, cause: unknown): never {
+  if (responseError && typeof responseError === 'object' && responseError !== cause) {
+    try {
+      ;(responseError as { cause?: unknown }).cause = cause
+    } catch {
+      // Best-effort metadata for internal Discord diagnostics.
+    }
+  }
+
+  throw responseError
+}
+
 function sheetsError(err: unknown): never {
   if (err instanceof GoogleSheetsConfigError) {
-    throw createError({ statusCode: 503, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 503, statusMessage: err.message }), err)
   }
 
   if (err instanceof GoogleSheetsSchemaError) {
-    throw createError({ statusCode: 503, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 503, statusMessage: err.message }), err)
   }
 
   if (err instanceof RsvpGuestNotFoundError) {
-    throw createError({ statusCode: 404, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 404, statusMessage: err.message }), err)
   }
 
   if (err instanceof RsvpGuestDuplicateError) {
-    throw createError({ statusCode: 409, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 409, statusMessage: err.message }), err)
   }
 
   if (err instanceof RsvpGuestValidationError) {
-    throw createError({ statusCode: 400, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 400, statusMessage: err.message }), err)
   }
 
   if (err instanceof GoogleSheetsRequestError) {
-    throw createError({ statusCode: 502, statusMessage: err.message })
+    throwWithCause(createError({ statusCode: 502, statusMessage: err.message }), err)
   }
 
   throw err
 }
 
+function notifyRsvpServerError(
+  event: H3Event,
+  err: unknown,
+  context: { body?: RsvpRequestBody; captcha?: CaptchaVerifyResult }
+) {
+  void sendRsvpDiscordErrorNotification(event, {
+    source: 'server',
+    operation: 'submit',
+    endpoint: '/api/rsvp',
+    method: event.node.req.method || 'GET',
+    err,
+    body: context.body,
+    captcha: context.captcha,
+  })
+}
+
 export default defineEventHandler(async (event) => {
-  const method = event.node.req.method || 'GET'
-  if (method !== 'POST') {
-    throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
-  }
-
-  if (isRsvpClosed()) {
-    throw createError({ statusCode: 403, statusMessage: RSVP_CLOSED_MESSAGE })
-  }
-
-  const body = (await readBody(event)) as RsvpRequestBody
-
-  const captchaToken = readStringField(body, 'captchaToken', { required: false, maxLen: 4096 }) || ''
-  const fullName = readStringField(body, 'fullName', { required: true, maxLen: 160 })!
-  const zipCode = readStringField(body, 'zipCode', { required: false, maxLen: 20 })
-  const matchToken = readStringField(body, 'matchToken', { required: false, maxLen: 4096 })
-  const willAttend = readWillAttendField(body)
-  const guestsAttending = readGuestsAttendingField(body, willAttend)
-  const attendingNamedGuests = willAttend === 'yes' ? readStringArrayField(body, 'attendingNamedGuests') : []
-  const guestNames = willAttend === 'yes' ? readStringArrayField(body, 'guestNames') : []
-
-  const captcha = await verifyRecaptchaToken(event, captchaToken)
-  if (!captcha.ok) captchaError(captcha)
+  let body: RsvpRequestBody | undefined
+  let captcha: CaptchaVerifyResult | undefined
 
   try {
-    const { guest, notification } = await updateRsvpGuest(event, {
-      fullName,
-      zipCode,
-      matchToken,
-      willAttend,
-      guestsAttending,
-      attendingNamedGuests,
-      guestNames,
-      submittedAtISO: new Date().toISOString(),
-    })
-    void sendRsvpDiscordNotification(event, notification)
+    const method = event.node.req.method || 'GET'
+    if (method !== 'POST') {
+      throw createError({ statusCode: 405, statusMessage: 'Method Not Allowed' })
+    }
 
-    return {
-      ok: true,
-      stored: true,
-      guest,
-      captcha: {
-        bypassed: captcha.bypassed === true,
-        score: captcha.score ?? null,
-        action: captcha.action ?? null,
-      },
+    if (isRsvpClosed()) {
+      throw createError({ statusCode: 403, statusMessage: RSVP_CLOSED_MESSAGE })
+    }
+
+    body = (await readBody(event)) as RsvpRequestBody
+
+    const captchaToken = readStringField(body, 'captchaToken', { required: false, maxLen: 4096 }) || ''
+    const fullName = readStringField(body, 'fullName', { required: true, maxLen: 160 })!
+    const zipCode = readStringField(body, 'zipCode', { required: false, maxLen: 20 })
+    const matchToken = readStringField(body, 'matchToken', { required: false, maxLen: 4096 })
+    const willAttend = readWillAttendField(body)
+    const guestsAttending = readGuestsAttendingField(body, willAttend)
+    const attendingNamedGuests = willAttend === 'yes' ? readStringArrayField(body, 'attendingNamedGuests') : []
+    const guestNames = willAttend === 'yes' ? readStringArrayField(body, 'guestNames') : []
+
+    captcha = await verifyRecaptchaToken(event, captchaToken)
+    if (!captcha.ok) captchaError(captcha)
+
+    try {
+      const { guest, notification } = await updateRsvpGuest(event, {
+        fullName,
+        zipCode,
+        matchToken,
+        willAttend,
+        guestsAttending,
+        attendingNamedGuests,
+        guestNames,
+        submittedAtISO: new Date().toISOString(),
+      })
+      void sendRsvpDiscordNotification(event, notification)
+
+      return {
+        ok: true,
+        stored: true,
+        guest,
+        captcha: {
+          bypassed: captcha.bypassed === true,
+          score: captcha.score ?? null,
+          action: captcha.action ?? null,
+        },
+      }
+    } catch (err) {
+      sheetsError(err)
     }
   } catch (err) {
-    sheetsError(err)
+    notifyRsvpServerError(event, err, { body, captcha })
+    throw err
   }
 })
