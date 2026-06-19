@@ -9,6 +9,7 @@ import {
   updateRsvpGuest,
   type WillAttend,
 } from '../services/googleSheets'
+import { sendRsvpDiscordNotification } from '../services/discordRsvp'
 import { verifyRecaptchaToken } from '../services/recaptcha'
 import { RSVP_CLOSED_MESSAGE, isRsvpClosed } from '#shared/rsvpDeadline'
 
@@ -179,7 +180,7 @@ export default defineEventHandler(async (event) => {
   if (!captcha.ok) captchaError(captcha)
 
   try {
-    const guest = await updateRsvpGuest(event, {
+    const { guest, notification } = await updateRsvpGuest(event, {
       fullName,
       zipCode,
       matchToken,
@@ -189,6 +190,7 @@ export default defineEventHandler(async (event) => {
       guestNames,
       submittedAtISO: new Date().toISOString(),
     })
+    void sendRsvpDiscordNotification(event, notification)
 
     return {
       ok: true,

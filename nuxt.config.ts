@@ -90,6 +90,7 @@ export default defineNuxtConfig({
     recaptchaMinimumScore: process.env.RECAPTCHA_MINIMUM_SCORE ? Number(process.env.RECAPTCHA_MINIMUM_SCORE) : 0.5,
     recaptchaExpectedAction: process.env.RECAPTCHA_EXPECTED_ACTION,
     recaptchaBypass: process.env.RECAPTCHA_BYPASS === 'true',
+    discordRsvpWebhookUrl: process.env.DISCORD_RSVP_WEBHOOK_URL,
     googleSheets: {
       spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
       worksheetName: process.env.GOOGLE_SHEETS_WORKSHEET_NAME || 'RSVPs',

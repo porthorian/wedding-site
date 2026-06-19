@@ -71,6 +71,18 @@ export type RsvpUpdateInput = RsvpLookupInput & {
   submittedAtISO: string
 }
 
+export type RsvpUpdateNotification = {
+  kind: 'new' | 'updated'
+  guest: RsvpGuest
+  submittedAtISO: string
+  updatedAtISO: string
+}
+
+export type RsvpUpdateResult = {
+  guest: RsvpGuest
+  notification: RsvpUpdateNotification | null
+}
+
 type GoogleSheetsRuntimeConfig = {
   spreadsheetId?: string
   worksheetName?: string
@@ -636,6 +648,18 @@ function columnLetter(index: number): string {
   return letters
 }
 
+function stringArraysEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
+function hasRsvpResponseChanged(previous: RsvpGuest, next: RsvpGuest): boolean {
+  return (
+    previous.willAttend !== next.willAttend ||
+    previous.guestsAttending !== next.guestsAttending ||
+    !stringArraysEqual(previous.guestNames, next.guestNames)
+  )
+}
+
 export async function findRsvpGuest(event: H3Event, input: RsvpLookupInput): Promise<RsvpGuest> {
   const { rows } = await getSheetRows(event)
   return getSingleGuestMatch(rows, input).guest
@@ -649,7 +673,7 @@ export async function findRsvpGuestLookup(event: H3Event, input: RsvpLookupInput
   return { matches }
 }
 
-export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): Promise<RsvpGuest> {
+export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): Promise<RsvpUpdateResult> {
   const { config, rows } = await getSheetRows(event)
   const match = getUpdateGuestMatch(config, rows, input)
   const guest = match.guest
@@ -663,7 +687,8 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     : []
   const additionalGuestsAttending = Math.max(0, guestsAttending - guest.namedGuestsCount)
   const partialNamedAttending = guestsAttending < guest.namedGuestsCount
-  const submittedAt = cell(match.row, rows.columns['Submitted At']) || now
+  const previousSubmittedAt = cell(match.row, rows.columns['Submitted At'])
+  const submittedAt = previousSubmittedAt || now
 
   if (!Number.isSafeInteger(guestsAttending) || guestsAttending < 0) {
     throw new RsvpGuestValidationError('Please choose a valid number of guests attending.')
@@ -699,6 +724,12 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
   }
 
   const allGuestNames = [...attendingNamedGuests, ...guestNames]
+  const updatedGuest: RsvpGuest = {
+    ...guest,
+    willAttend,
+    guestsAttending,
+    guestNames: allGuestNames,
+  }
 
   const updates: Array<{ column: RequiredColumn; value: string }> = [
     { column: 'Will Attend', value: willAttend },
@@ -722,10 +753,21 @@ export async function updateRsvpGuest(event: H3Event, input: RsvpUpdateInput): P
     },
   })
 
+  const notificationKind = !previousSubmittedAt
+    ? 'new'
+    : hasRsvpResponseChanged(guest, updatedGuest)
+      ? 'updated'
+      : null
+
   return {
-    ...guest,
-    willAttend,
-    guestsAttending,
-    guestNames: allGuestNames,
+    guest: updatedGuest,
+    notification: notificationKind
+      ? {
+          kind: notificationKind,
+          guest: updatedGuest,
+          submittedAtISO: submittedAt,
+          updatedAtISO: now,
+        }
+      : null,
   }
 }
