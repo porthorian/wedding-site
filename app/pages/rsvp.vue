@@ -39,7 +39,7 @@
                   {{ RSVP_CLOSED_MESSAGE }}
                 </p>
                 <p v-else class="rsvp-page-copy">
-                  Enter your full name as it <strong>appears on your invitation</strong>.
+                  Enter your name as it <strong>appears on your invitation</strong>, or just your last name.
                   Kindly reply by <strong>{{ RSVP_DEADLINE_DISPLAY }}</strong>.
                 </p>
 
@@ -47,7 +47,7 @@
                   <v-col cols="12">
                     <v-text-field
                       v-model="lookupForm.fullName"
-                      label="Full name"
+                      label="Name"
                       variant="underlined"
                       density="compact"
                       autocomplete="name"
@@ -70,9 +70,9 @@
                     </v-col>
                   </v-expand-transition>
                   <v-expand-transition>
-                    <v-col v-if="lookupMatchOptions.length > 1" cols="12">
+                    <v-col v-if="lookupMatchOptions.length > 0" cols="12">
                       <div class="field-group rsvp-field-group rsvp-match-selector">
-                        <div class="section-label">Which invitation is yours?</div>
+                        <div class="section-label">{{ lookupMatchPrompt }}</div>
                         <v-radio-group
                           v-model="selectedLookupMatchToken"
                           density="comfortable"
@@ -104,7 +104,7 @@
                     :disabled="lookupSubmitting"
                     @click.prevent="lookupGuest"
                   >
-                    {{ lookupMatchOptions.length > 1 ? 'Continue' : 'Find Invitation' }}
+                    {{ lookupMatchOptions.length > 0 ? 'Continue' : 'Find Invitation' }}
                   </v-btn>
                 </div>
               </v-form>
@@ -497,6 +497,9 @@ const successMessage = computed(() =>
 const selectedLookupMatch = computed(() =>
   lookupMatchOptions.value.find((match) => match.matchToken === selectedLookupMatchToken.value) || null
 )
+const lookupMatchPrompt = computed(() =>
+  lookupMatchOptions.value.length === 1 ? 'Confirm your invitation' : 'Which invitation is yours?'
+)
 const parsedNamedGuests = computed(() => matchedGuest.value?.namedGuests ?? [])
 const namedGuestsCount = computed(() => matchedGuest.value?.namedGuestsCount ?? 1)
 const isAnonymousParty = computed(() => matchedGuest.value?.namedGuestsCount === 0)
@@ -554,15 +557,15 @@ const guestCountOptions = computed(() =>
   }))
 
 const fullNameRules = [
-  (value: string) => (!!value?.trim() ? true : 'Full name is required'),
-  (value: string) => (value?.trim().length <= 160 ? true : 'Full name is too long'),
+  (value: string) => (!!value?.trim() ? true : 'Name is required'),
+  (value: string) => (value?.trim().length <= 160 ? true : 'Name is too long'),
 ]
 const zipCodeRules = [
   (value: string) => (!zipCodeRequired.value || !!normalizeZipCode(value) ? true : 'ZIP Code is required'),
   (value: string) => (!value?.trim() || normalizeZipCode(value).length === 5 ? true : 'Please enter a 5-digit ZIP Code'),
 ]
 const lookupMatchRules = [
-  (value: string) => (lookupMatchOptions.value.length <= 1 || !!value ? true : 'Please choose your invitation'),
+  (value: string) => (lookupMatchOptions.value.length === 0 || !!value ? true : 'Please choose your invitation'),
 ]
 const willAttendRules = [(value: WillAttend | null) => (value === 'yes' || value === 'no' ? true : 'Please choose one')]
 const guestCountRules = [
@@ -998,8 +1001,8 @@ function validateLookupValues(): string[] {
   const fullName = trimFormValue(lookupForm.fullName)
   const zipCode = normalizeZipCode(lookupForm.zipCode)
 
-  if (!fullName) errors.push('Full name is required.')
-  else if (fullName.length > 160) errors.push('Full name is too long.')
+  if (!fullName) errors.push('Name is required.')
+  else if (fullName.length > 160) errors.push('Name is too long.')
 
   if (zipCodeRequired.value && !zipCode) errors.push('ZIP Code is required.')
   else if (lookupForm.zipCode.trim() && zipCode.length !== 5) errors.push('Please enter a 5-digit ZIP Code.')
@@ -1078,7 +1081,7 @@ async function lookupGuest() {
     return
   }
 
-  if (lookupMatchOptions.value.length > 1) {
+  if (lookupMatchOptions.value.length > 0) {
     if (!selectedLookupMatch.value) {
       setRsvpErrors(['Please choose your invitation.'])
       return
@@ -1109,7 +1112,7 @@ async function lookupGuest() {
     if (response.matches?.length) {
       lookupMatchOptions.value = response.matches
       selectedLookupMatchToken.value = ''
-      zipCodeRequired.value = true
+      zipCodeRequired.value = response.matches.length > 1 || !!normalizeZipCode(lookupForm.zipCode)
       setRsvpErrors([])
       return
     }

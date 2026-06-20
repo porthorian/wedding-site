@@ -5,6 +5,7 @@
   "packageManager": "yarn@4.12.0",
   "scripts": {
     "build": "nuxt build",
+    "check:rsvp-fuzzy": "node --experimental-strip-types scripts/check-rsvp-fuzzy-lookup.ts",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "optimize:gallery-images": "node scripts/optimize-gallery-images.mjs",

@@ -1,6 +1,14 @@
 import { createHmac, createSign, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
+import {
+  findExactRsvpMatches,
+  findRsvpMatchByKey,
+  normalizeInvitationName,
+  normalizeZipCode,
+  resolveRsvpLookupMatches,
+  type RsvpMatchableRow,
+} from './rsvpMatching'
 
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -197,50 +205,6 @@ function safeEqual(value: string, expected: string): boolean {
   const valueBuffer = Buffer.from(value)
   const expectedBuffer = Buffer.from(expected)
   return valueBuffer.length === expectedBuffer.length && timingSafeEqual(valueBuffer, expectedBuffer)
-}
-
-function normalizeName(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').toLowerCase()
-}
-
-function normalizeInvitationName(value: string): string {
-  return normalizeName(value).replace(/&/g, ' and ').replace(/\s+/g, ' ')
-}
-
-function splitInvitationNameGroup(value: string): string[] {
-  return value
-    .trim()
-    .replace(/\s+/g, ' ')
-    .split(/\s*(?:&|\band\b)\s*/i)
-    .map((part) => part.trim())
-    .filter(Boolean)
-}
-
-function buildInvitationNameCandidates(firstName: string, lastName: string): Set<string> {
-  const candidates = new Set<string>()
-  const addCandidate = (value: string) => {
-    const normalized = normalizeInvitationName(value)
-    if (normalized) candidates.add(normalized)
-  }
-
-  addCandidate([firstName, lastName].filter(Boolean).join(' '))
-
-  const firstNames = splitInvitationNameGroup(firstName)
-  const lastNames = splitInvitationNameGroup(lastName)
-
-  if (firstNames.length <= 1) return candidates
-
-  if (lastNames.length === firstNames.length) {
-    firstNames.forEach((first, index) => addCandidate([first, lastNames[index]].filter(Boolean).join(' ')))
-  } else if (lastNames.length === 1) {
-    firstNames.forEach((first) => addCandidate([first, lastNames[0]].filter(Boolean).join(' ')))
-  }
-
-  return candidates
-}
-
-function normalizeZipCode(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 5)
 }
 
 function normalizeHeader(value: string): string {
@@ -449,26 +413,27 @@ function mapGuest(row: string[], columns: Record<RequiredColumn, number>): RsvpG
   }
 }
 
-function findMatchingRows(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow[] {
-  const fullName = normalizeInvitationName(input.fullName)
-  const zipCode = normalizeZipCode(input.zipCode || '')
-
-  return rows.rows.reduce<MatchingGuestRow[]>((matches, row, rowIndex) => {
+function getMatchableRows(rows: SheetRows): RsvpMatchableRow<MatchingGuestRow>[] {
+  return rows.rows.map((row, rowIndex) => {
     const firstName = cell(row, rows.columns['First Name'])
     const lastName = cell(row, rows.columns['Last Name'])
-    const rowNameCandidates = buildInvitationNameCandidates(firstName, lastName)
     const rowZipCode = normalizeZipCode(cell(row, rows.columns['ZIP Code']))
 
-    if (rowNameCandidates.has(fullName) && (!zipCode || rowZipCode === zipCode)) {
-      matches.push({
+    return {
+      value: {
         rowNumber: rowIndex + DATA_ROW_START,
         row,
         guest: mapGuest(row, rows.columns),
-      })
+      },
+      firstName,
+      lastName,
+      zipCode: rowZipCode,
     }
+  })
+}
 
-    return matches
-  }, [])
+function findMatchingRows(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow[] {
+  return findExactRsvpMatches(getMatchableRows(rows), input)
 }
 
 function matchTokenSecret(config: SheetsConfig): string {
@@ -590,18 +555,30 @@ function getMatchingRowsOrThrow(rows: SheetRows, input: RsvpLookupInput): { matc
   return { matches, hasZipCode }
 }
 
-function getLookupGuestMatches(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow[] {
-  const { matches, hasZipCode } = getMatchingRowsOrThrow(rows, input)
+function getLookupGuestMatches(rows: SheetRows, input: RsvpLookupInput): {
+  matches: MatchingGuestRow[]
+  requiresConfirmation: boolean
+} {
+  const result = resolveRsvpLookupMatches(getMatchableRows(rows), input)
 
-  if (matches.length > 1) {
-    if (hasZipCode) return matches
+  if (result.status === 'not-found') {
+    throw new RsvpGuestNotFoundError(
+      result.hasZipCode
+        ? "We couldn't match that invitation name and ZIP Code. Please check both and try again."
+        : undefined
+    )
+  }
 
+  if (result.status === 'duplicate') {
     throw new RsvpGuestDuplicateError(
       'We found more than one invitation for that name. Please enter the ZIP Code from your mailing address.'
     )
   }
 
-  return matches
+  return {
+    matches: result.matches,
+    requiresConfirmation: result.requiresConfirmation,
+  }
 }
 
 function getSingleGuestMatch(rows: SheetRows, input: RsvpLookupInput): MatchingGuestRow {
@@ -620,7 +597,12 @@ function getSingleGuestMatch(rows: SheetRows, input: RsvpLookupInput): MatchingG
 
 function getTokenGuestMatch(config: SheetsConfig, rows: SheetRows, input: RsvpLookupInput & { matchToken: string }): MatchingGuestRow {
   const payload = readMatchTokenPayload(config, input, input.matchToken)
-  const match = findMatchingRows(rows, input).find((candidate) => safeEqual(createMatchKey(config, rows, candidate), payload.matchKey))
+  const match = findRsvpMatchByKey(
+    getMatchableRows(rows),
+    payload.matchKey,
+    (candidate) => createMatchKey(config, rows, candidate),
+    safeEqual
+  )
 
   if (!match) {
     throw new RsvpGuestValidationError(MATCH_TOKEN_ERROR)
@@ -667,9 +649,10 @@ export async function findRsvpGuest(event: H3Event, input: RsvpLookupInput): Pro
 
 export async function findRsvpGuestLookup(event: H3Event, input: RsvpLookupInput): Promise<RsvpLookupResult> {
   const { config, rows } = await getSheetRows(event)
-  const matches = getLookupGuestMatches(rows, input).map((match) => createRsvpGuestMatch(config, rows, input, match))
+  const lookup = getLookupGuestMatches(rows, input)
+  const matches = lookup.matches.map((match) => createRsvpGuestMatch(config, rows, input, match))
 
-  if (matches.length === 1) return matches[0]
+  if (!lookup.requiresConfirmation && matches.length === 1) return matches[0]
   return { matches }
 }
 
