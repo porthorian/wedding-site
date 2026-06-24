@@ -101,7 +101,7 @@
                     size="large"
                     data-rybbit-event="lookup_invitation"
                     :loading="lookupSubmitting || recaptchaPreparing"
-                    :disabled="lookupSubmitting"
+                    :disabled="lookupSubmitting || recaptchaActionBlocked"
                     @click.prevent="lookupGuest"
                   >
                     {{ lookupMatchOptions.length > 0 ? 'Continue' : 'Find Invitation' }}
@@ -237,7 +237,7 @@
                     size="large"
                     data-rybbit-event="submit_rsvp"
                     :loading="rsvpSubmitting || recaptchaPreparing"
-                    :disabled="rsvpSubmitting"
+                    :disabled="rsvpSubmitting || recaptchaActionBlocked"
                     @click.prevent="submitRsvp"
                   >
                     Send RSVP
@@ -578,7 +578,8 @@ const guestNameRules = [
   (value: string) => (!!value?.trim() ? true : 'Guest name is required'),
   (value: string) => (value?.trim().length <= 120 ? true : 'Guest name is too long'),
 ]
-
+const RECAPTCHA_LOADING_MESSAGE = 'reCAPTCHA is still loading. Please wait a moment and try again.'
+const recaptchaActionBlocked = computed(() => !recaptchaBypass.value && recaptchaPreparing.value)
 useHead(() => {
   const siteKey = recaptchaSiteKey.value
   const head = {
@@ -1073,6 +1074,11 @@ async function lookupGuest() {
     return
   }
 
+  if (recaptchaActionBlocked.value) {
+    setRsvpErrors([RECAPTCHA_LOADING_MESSAGE])
+    return
+  }
+
   if (!(await validateLookupFormOrReport())) return
 
   const validationErrors = validateLookupValues()
@@ -1143,6 +1149,11 @@ async function submitRsvp() {
   if (refreshAndScheduleRsvpCutoff()) {
     setRsvpErrors([RSVP_CLOSED_MESSAGE])
     phaseIndex.value = 0
+    return
+  }
+
+  if (recaptchaActionBlocked.value) {
+    setRsvpErrors([RECAPTCHA_LOADING_MESSAGE])
     return
   }
 
