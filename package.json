@@ -13,10 +13,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/image": "2.0.0",
-    "@nuxt/ui": "4.9.0",
+    "@nuxt/image": "2.1.0",
+    "@nuxt/ui": "4.10.0",
     "animejs": "^4.5.0",
-    "nuxt": "^4.4.2",
+    "nuxt": "^4.5.1",
     "vue": "^3.5.20",
     "vuetify": "^4.1.0"
   },
